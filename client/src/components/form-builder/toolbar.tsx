@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Eye, Save, Send, Pencil } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Eye, Save, Send, Pencil, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -17,21 +17,30 @@ interface ToolbarProps {
   formId?: number;
   onFormNameChange: (name: string) => void;
   onPreviewClick: () => void;
+  onSaveClick?: () => void;
 }
 
 export function Toolbar({ 
   formName, 
   formId, 
   onFormNameChange,
-  onPreviewClick 
+  onPreviewClick,
+  onSaveClick
 }: ToolbarProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const { toast } = useToast();
+  
   const form = useForm({
     defaultValues: {
       name: formName
     }
   });
+
+  // Update form when formName changes
+  useEffect(() => {
+    form.setValue('name', formName);
+  }, [formName, form]);
 
   const toggleEditMode = () => {
     if (isEditing) {
@@ -43,29 +52,36 @@ export function Toolbar({
   };
 
   const handleSave = async () => {
-    try {
-      if (!formId) {
+    if (onSaveClick) {
+      onSaveClick();
+    } else {
+      try {
+        if (!formId) {
+          toast({
+            title: "Form not saved",
+            description: "Please create the form first",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        await apiRequest(`/api/forms/${formId}`, {
+          method: 'PATCH',
+          data: {}
+        });
+        
         toast({
-          title: "Form not saved",
-          description: "Please create the form first",
+          title: "Form saved",
+          description: "Your form has been saved successfully"
+        });
+      } catch (error) {
+        console.error('Error saving form:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save form",
           variant: "destructive"
         });
-        return;
       }
-      
-      await apiRequest('PATCH', `/api/forms/${formId}`, {});
-      
-      toast({
-        title: "Form saved",
-        description: "Your form has been saved successfully"
-      });
-    } catch (error) {
-      console.error('Error saving form:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save form",
-        variant: "destructive"
-      });
     }
   };
 
@@ -80,7 +96,11 @@ export function Toolbar({
         return;
       }
       
-      await apiRequest('POST', `/api/forms/${formId}/publish`, {});
+      setIsPublishing(true);
+      
+      await apiRequest(`/api/forms/${formId}/publish`, {
+        method: 'POST'
+      });
       
       toast({
         title: "Form published",
@@ -93,6 +113,8 @@ export function Toolbar({
         description: "Failed to publish form",
         variant: "destructive"
       });
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -153,8 +175,13 @@ export function Toolbar({
         <Button 
           className="space-x-1 bg-[#107c10] hover:bg-[#0b5d0b]"
           onClick={handlePublish}
+          disabled={isPublishing || !formId}
         >
-          <Send className="h-4 w-4" />
+          {isPublishing ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <Send className="h-4 w-4 mr-2" />
+          )}
           <span>Publish</span>
         </Button>
       </div>

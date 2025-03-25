@@ -18,13 +18,13 @@ export function Sidebar({ isOpen }: SidebarProps) {
   const [hoveredAppId, setHoveredAppId] = useState<number | null>(null);
   
   // Fetch applications
-  const { data: applications, isLoading: isLoadingApps } = useQuery({
+  const { data: applications = [], isLoading: isLoadingApps } = useQuery<Application[]>({
     queryKey: ['/api/applications'],
     enabled: true,
   });
   
   // Fetch forms for hovered application
-  const { data: applicationForms, isLoading: isLoadingForms } = useQuery({
+  const { data: applicationForms = [], isLoading: isLoadingForms } = useQuery<Form[]>({
     queryKey: ['/api/applications', hoveredAppId, 'forms'],
     queryFn: async () => {
       if (!hoveredAppId) return [];

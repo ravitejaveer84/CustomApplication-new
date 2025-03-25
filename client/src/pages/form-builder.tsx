@@ -7,12 +7,12 @@ import { FormCanvas } from "@/components/form-builder/form-canvas";
 import { PropertiesPanel } from "@/components/form-builder/properties-panel";
 import { DataSourceModal } from "@/components/form-builder/data-source-modal";
 import { Button } from "@/components/ui/button";
-import { Database } from "lucide-react";
+import { Database, ArrowLeft, Loader2 } from "lucide-react";
 import { FormElement } from "@shared/schema";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 
@@ -23,14 +23,26 @@ export default function FormBuilder() {
   const [dataSourceModalOpen, setDataSourceModalOpen] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [formName, setFormName] = useState("New Form");
+  const [formDescription, setFormDescription] = useState("");
   const [savedFormId, setSavedFormId] = useState<number | undefined>(undefined);
   const { toast } = useToast();
-  const { id } = useParams();
+  
+  // Get route parameters
+  const { id, appId } = useParams();
   const [_, setLocation] = useLocation();
   
-  // If we have an ID, fetch the form data
-  const { data: formData, isLoading } = useQuery({
-    queryKey: id ? [`/api/forms/${id}`] : null,
+  // Application context
+  const applicationId = appId ? parseInt(appId) : undefined;
+  
+  // Fetch application details if we have an applicationId
+  const { data: applicationData } = useQuery<Application>({
+    queryKey: applicationId ? ['/api/applications', applicationId] : [],
+    enabled: !!applicationId,
+  });
+  
+  // If we have a form ID, fetch the form data
+  const { data: formData, isLoading: isLoadingForm } = useQuery<Form>({
+    queryKey: id ? [`/api/forms/${id}`] : [],
     enabled: !!id
   });
 
@@ -38,6 +50,7 @@ export default function FormBuilder() {
   useEffect(() => {
     if (formData) {
       setFormName(formData.name);
+      setFormDescription(formData.description || "");
       setFormElements(formData.elements);
       setSavedFormId(formData.id);
     }
@@ -45,27 +58,44 @@ export default function FormBuilder() {
 
   // Create or update form mutation
   const mutation = useMutation({
-    mutationFn: async (formData: { name: string, elements: FormElement[] }) => {
+    mutationFn: async (formData: { 
+      name: string, 
+      description: string,
+      elements: FormElement[],
+      applicationId?: number
+    }) => {
       if (savedFormId) {
         // Update existing form
-        return apiRequest('PATCH', `/api/forms/${savedFormId}`, formData);
+        return apiRequest(`/api/forms/${savedFormId}`, {
+          method: 'PATCH',
+          data: formData
+        });
       } else {
         // Create new form
-        return apiRequest('POST', '/api/forms', {
-          ...formData,
-          description: "",
-          isPublished: false
+        return apiRequest('/api/forms', {
+          method: 'POST',
+          data: {
+            ...formData,
+            isPublished: false
+          }
         });
       }
     },
-    onSuccess: async (response) => {
-      const data = await response.json();
+    onSuccess: (data) => {
       if (!savedFormId) {
         setSavedFormId(data.id);
+        // Update location to the form builder with ID
         setLocation(`/form-builder/${data.id}`);
       }
       
+      // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/forms'] });
+      if (applicationId) {
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/applications', applicationId, 'forms'] 
+        });
+      }
+      
       toast({
         title: "Form saved",
         description: `Your form "${formName}" has been saved successfully`
@@ -83,8 +113,6 @@ export default function FormBuilder() {
 
   const handleDragStart = (elementType: string) => {
     // The actual dataTransfer is set in the FormElementsList component
-    // We don't need to do anything here as the element component sets the data
-    // when the onDragStart event is triggered
     console.log('Element dragged:', elementType);
   };
 
@@ -104,12 +132,35 @@ export default function FormBuilder() {
   };
   
   const handleSaveForm = async () => {
-    mutation.mutate({ name: formName, elements: formElements });
+    mutation.mutate({ 
+      name: formName, 
+      description: formDescription,
+      elements: formElements,
+      applicationId: applicationId
+    });
   };
   
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+  
+  const getBackLink = () => {
+    if (applicationId) {
+      return `/applications/${applicationId}`;
+    } else if (savedFormId) {
+      return `/form/${savedFormId}`;
+    } else {
+      return '/';
+    }
+  };
+  
+  if (isLoadingForm) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   return (
     <div className="h-screen flex flex-col bg-[#f3f2f1]">
@@ -119,11 +170,27 @@ export default function FormBuilder() {
         <Sidebar isOpen={sidebarOpen} />
         
         <main className="flex-1 flex flex-col overflow-hidden">
+          {/* Context information */}
+          {applicationId && applicationData && (
+            <div className="bg-white border-b border-gray-200 p-3 flex items-center">
+              <Link href={getBackLink()}>
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to {applicationData.name}
+                </Button>
+              </Link>
+              <div className="ml-4 text-sm text-gray-500">
+                Creating form for <span className="font-medium">{applicationData.name}</span> application
+              </div>
+            </div>
+          )}
+          
           <Toolbar 
             formName={formName} 
             formId={savedFormId}
             onFormNameChange={handleFormNameChange}
             onPreviewClick={() => setPreviewModalOpen(true)}
+            onSaveClick={handleSaveForm}
           />
           
           <div className="flex-1 flex overflow-hidden">
