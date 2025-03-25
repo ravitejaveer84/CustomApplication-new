@@ -367,9 +367,9 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
               </SelectTrigger>
               <SelectContent>
                 {isLoading ? (
-                  <SelectItem value="" disabled>Loading...</SelectItem>
+                  <SelectItem value="loading" disabled>Loading...</SelectItem>
                 ) : dataSources?.length === 0 ? (
-                  <SelectItem value="" disabled>No data sources</SelectItem>
+                  <SelectItem value="no-data-sources" disabled>No data sources</SelectItem>
                 ) : (
                   dataSources?.map((source: any) => (
                     <SelectItem key={source.id} value={source.id.toString()}>
@@ -403,7 +403,7 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
               </SelectTrigger>
               <SelectContent>
                 {!selectedElement.dataSource?.id ? (
-                  <SelectItem value="" disabled>Select a data source first</SelectItem>
+                  <SelectItem value="select-datasource-first" disabled>Select a data source first</SelectItem>
                 ) : (
                   // Mock fields, in a real app these would come from the API based on the selected data source
                   ["first_name", "last_name", "email", "phone", "department", "position"].map((field) => (
