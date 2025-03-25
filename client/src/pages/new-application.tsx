@@ -60,6 +60,7 @@ export default function NewApplication() {
   const [isPending, setIsPending] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // Initialize the form
   const form = useForm<ApplicationFormValues>({
@@ -76,9 +77,15 @@ export default function NewApplication() {
     setIsPending(true);
     
     try {
+      // Include the createdBy field with the current user's ID
+      const applicationData = {
+        ...data,
+        createdBy: user?.id
+      };
+      
       const response = await apiRequest<{ id: number }>("/api/applications", {
         method: "POST",
-        data
+        data: applicationData
       });
       
       toast({

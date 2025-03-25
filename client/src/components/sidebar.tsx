@@ -105,12 +105,18 @@ export function Sidebar({ isOpen }: SidebarProps) {
             </div>
           ) : (
             <div className="space-y-1">
-              {/* Show applications where the user is admin or the application is created by the admin */}
+              {/* Show applications where the user is admin or the application is created for the user */}
               {applications?.filter(app => {
                   // Admin sees all apps
                   if (isAdmin) return true;
-                  // Users only see apps with a specific createdBy value
-                  return app.createdBy === (user?.id || 0);
+                  
+                  // For backward compatibility, if createdBy is null/undefined and user is authenticated, show the app
+                  if (app.createdBy === null || app.createdBy === undefined) {
+                    return true;
+                  }
+                  
+                  // Users only see apps created for them
+                  return app.createdBy === user?.id;
                 })
                 .map((app: Application) => (
                 <div 
