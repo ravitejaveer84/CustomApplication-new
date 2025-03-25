@@ -469,7 +469,7 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
         <FormLabel>Visibility Condition</FormLabel>
         <div className="flex items-center space-x-2 mt-1">
           <Select 
-            value={selectedElement.visibilityCondition?.field || ""} 
+            value={selectedElement.visibilityCondition?.field || "none"} 
             onValueChange={(value) => {
               const condition = selectedElement.visibilityCondition || { field: "", operator: "equals", value: "" };
               const newCondition = { ...condition, field: value };

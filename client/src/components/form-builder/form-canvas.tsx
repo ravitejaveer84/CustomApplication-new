@@ -193,7 +193,7 @@ export function FormCanvas({
               {element.label} {element.required && <span className="text-red-500">*</span>}
             </label>
             <select className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-primary">
-              <option value="" disabled selected>Select an option</option>
+              <option value="select-option" disabled selected>Select an option</option>
               {element.options?.map((option, index) => (
                 <option key={index} value={option.value}>{option.label}</option>
               ))}
