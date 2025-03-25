@@ -30,7 +30,7 @@ interface DataSourceModalProps {
 
 type DataSourceFormValues = {
   name: string;
-  type: "database" | "sharepoint";
+  type: "database" | "sharepoint" | "excel";
   server?: string;
   port?: string;
   database?: string;
@@ -39,6 +39,7 @@ type DataSourceFormValues = {
   password?: string;
   sharePointUrl?: string;
   listName?: string;
+  fileUrl?: string;
 };
 
 export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
@@ -56,26 +57,35 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
       username: "",
       password: "",
       sharePointUrl: "",
-      listName: ""
+      listName: "",
+      fileUrl: ""
     }
   });
   
   const handleSave = async (data: DataSourceFormValues) => {
     try {
       // Create a config object based on the type
-      const config = data.type === "database" 
-        ? {
-            server: data.server,
-            port: data.port,
-            database: data.database,
-            schema: data.schema,
-            username: data.username,
-            password: data.password
-          } 
-        : {
-            url: data.sharePointUrl,
-            listName: data.listName
-          };
+      let config: Record<string, any> = {};
+      
+      if (data.type === "database") {
+        config = {
+          server: data.server,
+          port: data.port,
+          database: data.database,
+          schema: data.schema,
+          username: data.username,
+          password: data.password
+        };
+      } else if (data.type === "sharepoint") {
+        config = {
+          url: data.sharePointUrl,
+          listName: data.listName
+        };
+      } else if (data.type === "excel") {
+        config = {
+          fileUrl: data.fileUrl
+        };
+      }
       
       // Send to the API
       await apiRequest<any>('/api/datasources', {
@@ -106,11 +116,54 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
     }
   };
   
-  const handleTestConnection = () => {
-    toast({
-      title: "Connection test successful",
-      description: "The connection to the data source was successful"
-    });
+  const handleTestConnection = async () => {
+    try {
+      const { type } = form.getValues();
+      
+      // Get the appropriate config based on data source type
+      let config = {};
+      
+      if (type === 'database') {
+        const { server, port, database, schema, username, password } = form.getValues();
+        config = { server, port, database, schema, username, password };
+      } else if (type === 'sharepoint') {
+        const { sharePointUrl, listName } = form.getValues();
+        config = { url: sharePointUrl, listName };
+      } else if (type === 'excel') {
+        const { fileUrl } = form.getValues();
+        config = { fileUrl };
+      }
+      
+      // Make the API call to test the connection
+      const response = await apiRequest<{
+        success: boolean;
+        message: string;
+        info?: any;
+      }>('/api/datasources/test-connection', {
+        method: 'POST',
+        data: { type, config }
+      });
+      
+      if (response.success) {
+        toast({
+          title: "Connection test successful",
+          description: response.message || "The connection was successful"
+        });
+      } else {
+        toast({
+          title: "Connection test failed",
+          description: response.message || "Could not connect to the data source",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Connection test error:', error);
+      toast({
+        title: "Connection error",
+        description: error instanceof Error ? error.message : "An error occurred testing the connection",
+        variant: "destructive"
+      });
+    }
   };
   
   const renderConnectionTab = () => (
@@ -139,7 +192,7 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
               <FormLabel>Data Source Type</FormLabel>
               <FormControl>
                 <RadioGroup 
-                  className="grid grid-cols-2 gap-4"
+                  className="grid grid-cols-3 gap-4"
                   value={field.value}
                   onValueChange={field.onChange}
                 >
@@ -147,14 +200,21 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
                     <RadioGroupItem value="database" id="database" className="mt-1 mr-3" />
                     <div>
                       <Label htmlFor="database" className="font-medium">Database</Label>
-                      <div className="text-sm text-gray-500">Connect to SQL, MySQL, or other databases</div>
+                      <div className="text-sm text-gray-500">Connect to SQL or PostgreSQL databases</div>
                     </div>
                   </div>
                   <div className={`border rounded-lg p-4 ${field.value === "sharepoint" ? "border-primary bg-blue-50" : "border-gray-300"} flex items-start`}>
                     <RadioGroupItem value="sharepoint" id="sharepoint" className="mt-1 mr-3" />
                     <div>
                       <Label htmlFor="sharepoint" className="font-medium">SharePoint</Label>
-                      <div className="text-sm text-gray-500">Connect to SharePoint lists or Excel files</div>
+                      <div className="text-sm text-gray-500">Connect to SharePoint lists</div>
+                    </div>
+                  </div>
+                  <div className={`border rounded-lg p-4 ${field.value === "excel" ? "border-primary bg-blue-50" : "border-gray-300"} flex items-start`}>
+                    <RadioGroupItem value="excel" id="excel" className="mt-1 mr-3" />
+                    <div>
+                      <Label htmlFor="excel" className="font-medium">Excel File</Label>
+                      <div className="text-sm text-gray-500">Connect to Excel spreadsheets</div>
                     </div>
                   </div>
                 </RadioGroup>
@@ -186,7 +246,7 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
                 <FormItem>
                   <FormLabel>Port</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="1433" />
+                    <Input {...field} placeholder="5432" />
                   </FormControl>
                 </FormItem>
               )}
@@ -247,7 +307,7 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
             />
           </div>
         </>
-      ) : (
+      ) : form.watch("type") === "sharepoint" ? (
         <>
           <FormField
             control={form.control}
@@ -266,10 +326,29 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
             name="listName"
             render={({ field }) => (
               <FormItem className="mb-6">
-                <FormLabel>List or Excel File Name</FormLabel>
+                <FormLabel>List Name</FormLabel>
                 <FormControl>
                   <Input {...field} placeholder="Employees" />
                 </FormControl>
+              </FormItem>
+            )}
+          />
+        </>
+      ) : (
+        // Excel file type
+        <>
+          <FormField
+            control={form.control}
+            name="fileUrl"
+            render={({ field }) => (
+              <FormItem className="mb-6">
+                <FormLabel>Excel File URL</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="https://example.com/path/to/data.xlsx" />
+                </FormControl>
+                <div className="text-sm text-gray-500 mt-1">
+                  Enter the URL to your Excel file on a shared drive or network location
+                </div>
               </FormItem>
             )}
           />

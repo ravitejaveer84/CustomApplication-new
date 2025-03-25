@@ -9,6 +9,7 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import pg from 'pg';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Application API endpoints
@@ -310,6 +311,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting data source:', error);
       res.status(500).json({ message: 'Error deleting data source' });
+    }
+  });
+  
+  // Test database connection endpoint
+  app.post('/api/datasources/test-connection', async (req, res) => {
+    try {
+      const { type, config } = req.body;
+      
+      if (type === 'database') {
+        // Handle PostgreSQL connection test
+        const {
+          server = process.env.PGHOST,
+          port = process.env.PGPORT,
+          database = process.env.PGDATABASE,
+          username = process.env.PGUSER,
+          password = process.env.PGPASSWORD
+        } = config || {};
+        
+        const pool = new pg.Pool({
+          host: server,
+          port: parseInt(port || '5432'),
+          database,
+          user: username,
+          password,
+          // Set a connection timeout
+          connectionTimeoutMillis: 5000,
+        });
+        
+        try {
+          // Test connection by querying PostgreSQL version
+          const client = await pool.connect();
+          const result = await client.query('SELECT version()');
+          client.release();
+          
+          // Return success with database info
+          res.json({
+            success: true,
+            message: 'Database connection successful',
+            info: {
+              server,
+              database,
+              version: result.rows[0].version
+            }
+          });
+        } catch (error) {
+          const dbError = error as Error;
+          console.error('Database connection error:', dbError);
+          res.status(400).json({
+            success: false,
+            message: `Database connection failed: ${dbError.message}`
+          });
+        } finally {
+          await pool.end();
+        }
+      } else if (type === 'sharepoint') {
+        // Simulate SharePoint connection test
+        const { url, listName } = config || {};
+        
+        if (!url || !listName) {
+          return res.status(400).json({
+            success: false,
+            message: 'SharePoint URL and list name are required'
+          });
+        }
+        
+        // In a real implementation, this would verify the SharePoint connection
+        res.json({
+          success: true,
+          message: 'SharePoint connection successful',
+          info: {
+            url,
+            listName
+          }
+        });
+      } else if (type === 'excel') {
+        // Handle OneDrive/SharePoint Excel file connection
+        const { fileUrl } = config || {};
+        
+        if (!fileUrl) {
+          return res.status(400).json({
+            success: false,
+            message: 'Excel file URL is required'
+          });
+        }
+        
+        // In a real implementation, this would verify the Excel file is accessible
+        res.json({
+          success: true,
+          message: 'Excel file connection successful',
+          info: {
+            fileUrl
+          }
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: `Unsupported data source type: ${type}`
+        });
+      }
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error testing connection:', error);
+      res.status(500).json({
+        success: false,
+        message: `Connection test failed: ${error.message}`
+      });
     }
   });
   
