@@ -37,25 +37,40 @@ function Router() {
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [location] = useState(window.location.pathname);
   
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
   
+  // Check if the current route is the form builder which has its own layout
+  const isFormBuilderRoute = 
+    location.startsWith('/form-builder') || 
+    location.startsWith('/applications/') && location.includes('/new-form');
+  
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex h-screen w-full overflow-hidden bg-gray-50">
-        <Sidebar isOpen={sidebarOpen} />
-        
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <AppHeader toggleSidebar={toggleSidebar} />
-          
-          <main className="flex-1 overflow-y-auto p-4">
-            <Router />
-          </main>
+      {isFormBuilderRoute ? (
+        // Form builder has its own layout, so just render the router
+        <div className="h-screen w-full">
+          <Router />
+          <Toaster />
         </div>
-      </div>
-      <Toaster />
+      ) : (
+        // Regular layout with sidebar and header
+        <div className="flex h-screen w-full overflow-hidden bg-gray-50">
+          <Sidebar isOpen={sidebarOpen} />
+          
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <AppHeader toggleSidebar={toggleSidebar} />
+            
+            <main className="flex-1 overflow-y-auto p-4">
+              <Router />
+            </main>
+          </div>
+          <Toaster />
+        </div>
+      )}
     </QueryClientProvider>
   );
 }

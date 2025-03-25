@@ -30,20 +30,23 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, MoreHorizontal, Plus, Trash, Eye, Send } from "lucide-react";
+import { Form } from "@shared/schema";
 
 export default function FormsList() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { toast } = useToast();
   
   // Fetch forms
-  const { data: forms, isLoading } = useQuery({
+  const { data: forms = [], isLoading } = useQuery<Form[]>({
     queryKey: ['/api/forms']
   });
   
   // Delete form mutation
   const deleteMutation = useMutation({
     mutationFn: async (formId: number) => {
-      return apiRequest('DELETE', `/api/forms/${formId}`, null);
+      return await apiRequest<void>(`/api/forms/${formId}`, {
+        method: 'DELETE'
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/forms'] });
@@ -65,7 +68,9 @@ export default function FormsList() {
   // Publish form mutation
   const publishMutation = useMutation({
     mutationFn: async (formId: number) => {
-      return apiRequest('POST', `/api/forms/${formId}/publish`, {});
+      return await apiRequest<void>(`/api/forms/${formId}/publish`, {
+        method: 'POST'
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/forms'] });

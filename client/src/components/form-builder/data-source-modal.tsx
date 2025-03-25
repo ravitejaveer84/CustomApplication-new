@@ -143,7 +143,141 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSave)}>
-              {/* Form fields go here */}
+              {activeTab === "connection" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Name</label>
+                      <input 
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        {...form.register("name", { required: true })}
+                      />
+                      {form.formState.errors.name && (
+                        <p className="text-sm text-red-500">Name is required</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Type</label>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        {...form.register("type", { required: true })}
+                      >
+                        <option value="database">Database</option>
+                        <option value="sharepoint">SharePoint</option>
+                        <option value="excel">Excel</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {form.watch("type") === "database" && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Server</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder="localhost"
+                          {...form.register("server")}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Port</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder="5432"
+                          {...form.register("port")}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Database</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                          {...form.register("database")}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Schema</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder="public"
+                          {...form.register("schema")}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Username</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                          {...form.register("username")}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Password</label>
+                        <input
+                          type="password"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                          {...form.register("password")}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {form.watch("type") === "sharepoint" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">SharePoint URL</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder="https://your-domain.sharepoint.com/sites/your-site"
+                          {...form.register("sharePointUrl")}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">List Name</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                          {...form.register("listName")}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {form.watch("type") === "excel" && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">File URL or Path</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="https://example.com/path/to/file.xlsx"
+                        {...form.register("fileUrl")}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {activeTab === "fields" && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">
+                    Field mapping will be available after a successful connection test.
+                  </p>
+                </div>
+              )}
+              
+              {activeTab === "preview" && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">
+                    Data preview will be available after a successful connection test.
+                  </p>
+                </div>
+              )}
               <div className="flex justify-end space-x-2 mt-4">
                 <button
                   type="button"
