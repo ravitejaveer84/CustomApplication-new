@@ -38,7 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const userData = await apiRequest<User>('/api/auth/me');
+        const userData = await apiRequest<User>('/api/auth/me', {
+          method: 'GET'
+        });
         setUser(userData);
       } catch (error) {
         // Not authenticated - clear user data
@@ -57,10 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       const userData = await apiRequest<User>('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ username, password }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        data: { username, password }
       });
       
       setUser(userData);
@@ -75,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       await apiRequest('/api/auth/logout', {
-        method: 'POST',
+        method: 'POST'
       });
       
       setUser(null);

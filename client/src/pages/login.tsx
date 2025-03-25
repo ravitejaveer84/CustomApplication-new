@@ -1,30 +1,21 @@
 import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -34,10 +25,11 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
-
+  
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -47,27 +39,18 @@ export default function Login() {
   });
 
   async function onSubmit(data: LoginFormValues) {
-    setIsLoading(true);
-    
     try {
-      const user = await apiRequest('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${user.name || user.username}!`,
-      });
-      
+      setIsLoading(true);
+      await login(data.username, data.password);
       navigate("/");
-    } catch (error) {
-      console.error('Login error:', error);
       toast({
-        title: "Login failed",
+        title: "Login Successful",
+        description: "You have been logged in successfully",
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Login Failed",
         description: "Invalid username or password",
         variant: "destructive",
       });
@@ -78,10 +61,10 @@ export default function Login() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+          <CardDescription className="text-center">
             Enter your credentials to access your account
           </CardDescription>
         </CardHeader>
@@ -95,7 +78,7 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Username</FormLabel>
                     <FormControl>
-                      <Input placeholder="admin" {...field} />
+                      <Input placeholder="Enter your username" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -108,24 +91,25 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input type="password" placeholder="Enter your password" {...field} />
                     </FormControl>
-                    <FormDescription>
-                      Default admin login: admin / admin123
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign in"}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="flex flex-col">
-          <p className="text-xs text-center text-muted-foreground mt-4">
-            By signing in, you agree to our terms of service and privacy policy.
+        <CardFooter className="flex justify-center">
+          <p className="text-sm text-muted-foreground">
+            Form Builder Admin Portal
           </p>
         </CardFooter>
       </Card>

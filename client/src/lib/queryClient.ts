@@ -12,7 +12,7 @@ export async function apiRequest<T = any>(
   options: {
     method: string;
     data?: any;
-  }
+  } = { method: 'GET' }
 ): Promise<T> {
   const { method, data } = options;
   
