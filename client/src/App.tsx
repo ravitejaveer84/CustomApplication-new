@@ -9,19 +9,17 @@ import FormsList from "@/pages/forms-list";
 import DataSources from "@/pages/data-sources";
 import { Sidebar } from "@/components/sidebar";
 import { AppHeader } from "@/components/app-header";
-
-// We'll create these pages next
-// import ApplicationDetail from "@/pages/application-detail";
-// import NewApplication from "@/pages/new-application";
+import ApplicationDetail from "@/pages/application-detail";
+import NewApplication from "@/pages/new-application";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={FormsList} />
       
-      {/* Application routes - temporarily using NotFound as placeholder */}
-      <Route path="/applications/new" component={NotFound} />
-      <Route path="/applications/:id" component={NotFound} />
+      {/* Application routes */}
+      <Route path="/applications/new" component={NewApplication} />
+      <Route path="/applications/:id" component={ApplicationDetail} />
       <Route path="/applications/:appId/new-form" component={FormBuilder} />
       
       {/* Form routes */}

@@ -95,101 +95,93 @@ export default function FormsList() {
   };
   
   return (
-    <div className="h-screen flex flex-col bg-[#f3f2f1]">
-      <AppHeader toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-      
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar isOpen={sidebarOpen} />
-        
-        <main className="flex-1 p-6 overflow-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-semibold">Forms</h1>
-            <Link href="/form-builder">
-              <Button className="bg-primary">
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Form
-              </Button>
-            </Link>
-          </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>All Forms</CardTitle>
-              <CardDescription>Manage your forms</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-              ) : forms?.length === 0 ? (
-                <div className="text-center py-6 text-gray-500">
-                  <p>No forms found. Create your first form!</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Data Source</TableHead>
-                      <TableHead>Last Modified</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {forms?.map((form) => (
-                      <TableRow key={form.id}>
-                        <TableCell className="font-medium">{form.name}</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 text-xs rounded-full ${form.isPublished ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                            {form.isPublished ? 'Published' : 'Draft'}
-                          </span>
-                        </TableCell>
-                        <TableCell>{form.dataSourceId || "None"}</TableCell>
-                        <TableCell>{new Date(form.updatedAt).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <Link href={`/form-builder/${form.id}`}>
-                                <DropdownMenuItem>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  <span>Edit</span>
-                                </DropdownMenuItem>
-                              </Link>
-                              <DropdownMenuItem onClick={() => window.open(`/forms/${form.id}`, '_blank')}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                <span>Preview</span>
-                              </DropdownMenuItem>
-                              {!form.isPublished && (
-                                <DropdownMenuItem onClick={() => handlePublish(form.id)}>
-                                  <Send className="h-4 w-4 mr-2" />
-                                  <span>Publish</span>
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={() => handleDelete(form.id)}>
-                                <Trash className="h-4 w-4 mr-2" />
-                                <span>Delete</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </main>
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold">Forms</h1>
+        <Link href="/form-builder">
+          <Button className="bg-primary">
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Form
+          </Button>
+        </Link>
       </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>All Forms</CardTitle>
+          <CardDescription>Manage your forms</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : forms?.length === 0 ? (
+            <div className="text-center py-6 text-gray-500">
+              <p>No forms found. Create your first form!</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Data Source</TableHead>
+                  <TableHead>Last Modified</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {forms?.map((form) => (
+                  <TableRow key={form.id}>
+                    <TableCell className="font-medium">{form.name}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 text-xs rounded-full ${form.isPublished ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {form.isPublished ? 'Published' : 'Draft'}
+                      </span>
+                    </TableCell>
+                    <TableCell>{form.dataSourceId || "None"}</TableCell>
+                    <TableCell>{new Date(form.updatedAt).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <Link href={`/form-builder/${form.id}`}>
+                            <DropdownMenuItem>
+                              <Edit className="h-4 w-4 mr-2" />
+                              <span>Edit</span>
+                            </DropdownMenuItem>
+                          </Link>
+                          <DropdownMenuItem onClick={() => window.open(`/forms/${form.id}`, '_blank')}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            <span>Preview</span>
+                          </DropdownMenuItem>
+                          {!form.isPublished && (
+                            <DropdownMenuItem onClick={() => handlePublish(form.id)}>
+                              <Send className="h-4 w-4 mr-2" />
+                              <span>Publish</span>
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => handleDelete(form.id)}>
+                            <Trash className="h-4 w-4 mr-2" />
+                            <span>Delete</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
