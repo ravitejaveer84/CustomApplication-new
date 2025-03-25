@@ -1,5 +1,6 @@
 import { 
   users, type User, type InsertUser,
+  applications, type Application, type InsertApplication,
   forms, type Form, type InsertForm,
   dataSources, type DataSource, type InsertDataSource,
   formSubmissions, type FormSubmission, type InsertFormSubmission
@@ -12,8 +13,16 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
+  // Application methods
+  getApplications(): Promise<Application[]>;
+  getApplication(id: number): Promise<Application | undefined>;
+  createApplication(application: InsertApplication): Promise<Application>;
+  updateApplication(id: number, application: Partial<InsertApplication>): Promise<Application | undefined>;
+  deleteApplication(id: number): Promise<boolean>;
+  
   // Form methods
   getForms(): Promise<Form[]>;
+  getFormsByApplication(applicationId: number): Promise<Form[]>;
   getForm(id: number): Promise<Form | undefined>;
   createForm(form: InsertForm): Promise<Form>;
   updateForm(id: number, form: Partial<InsertForm>): Promise<Form | undefined>;
@@ -34,25 +43,53 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
+  private applications: Map<number, Application>;
   private forms: Map<number, Form>;
   private dataSources: Map<number, DataSource>;
   private formSubmissions: Map<number, FormSubmission>;
   
   private userCurrentId: number;
+  private applicationCurrentId: number;
   private formCurrentId: number;
   private dataSourceCurrentId: number;
   private formSubmissionCurrentId: number;
 
   constructor() {
     this.users = new Map();
+    this.applications = new Map();
     this.forms = new Map();
     this.dataSources = new Map();
     this.formSubmissions = new Map();
     
     this.userCurrentId = 1;
+    this.applicationCurrentId = 1;
     this.formCurrentId = 1;
     this.dataSourceCurrentId = 1;
     this.formSubmissionCurrentId = 1;
+    
+    // Initialize with default applications
+    this.initializeDefaultApplications();
+  }
+  
+  private async initializeDefaultApplications() {
+    // Create default applications
+    await this.createApplication({
+      name: "Reports",
+      description: "Reporting application with various forms",
+      icon: "bar-chart"
+    });
+    
+    await this.createApplication({
+      name: "EDM",
+      description: "Electronic Document Management",
+      icon: "file-text"
+    });
+    
+    await this.createApplication({
+      name: "US Custom",
+      description: "US Customs application forms",
+      icon: "clipboard-check"
+    });
   }
 
   // User methods
@@ -73,9 +110,54 @@ export class MemStorage implements IStorage {
     return user;
   }
   
+  // Application methods
+  async getApplications(): Promise<Application[]> {
+    return Array.from(this.applications.values());
+  }
+  
+  async getApplication(id: number): Promise<Application | undefined> {
+    return this.applications.get(id);
+  }
+  
+  async createApplication(insertApplication: InsertApplication): Promise<Application> {
+    const id = this.applicationCurrentId++;
+    const now = new Date();
+    const application: Application = { 
+      ...insertApplication, 
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.applications.set(id, application);
+    return application;
+  }
+  
+  async updateApplication(id: number, partialApplication: Partial<InsertApplication>): Promise<Application | undefined> {
+    const application = this.applications.get(id);
+    if (!application) return undefined;
+    
+    const updatedApplication: Application = {
+      ...application,
+      ...partialApplication,
+      updatedAt: new Date()
+    };
+    
+    this.applications.set(id, updatedApplication);
+    return updatedApplication;
+  }
+  
+  async deleteApplication(id: number): Promise<boolean> {
+    return this.applications.delete(id);
+  }
+  
   // Form methods
   async getForms(): Promise<Form[]> {
     return Array.from(this.forms.values());
+  }
+  
+  async getFormsByApplication(applicationId: number): Promise<Form[]> {
+    return Array.from(this.forms.values())
+      .filter(form => form.applicationId === applicationId);
   }
   
   async getForm(id: number): Promise<Form | undefined> {

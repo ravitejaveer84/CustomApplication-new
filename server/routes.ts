@@ -4,12 +4,118 @@ import { storage } from "./storage";
 import { 
   insertFormSchema, 
   insertDataSourceSchema, 
-  insertFormSubmissionSchema 
+  insertFormSubmissionSchema,
+  insertApplicationSchema
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Application API endpoints
+  app.get('/api/applications', async (req, res) => {
+    try {
+      const applications = await storage.getApplications();
+      res.json(applications);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      res.status(500).json({ message: 'Error fetching applications' });
+    }
+  });
+  
+  app.get('/api/applications/:id', async (req, res) => {
+    try {
+      const applicationId = parseInt(req.params.id);
+      if (isNaN(applicationId)) {
+        return res.status(400).json({ message: 'Invalid application ID' });
+      }
+      
+      const application = await storage.getApplication(applicationId);
+      if (!application) {
+        return res.status(404).json({ message: 'Application not found' });
+      }
+      
+      res.json(application);
+    } catch (error) {
+      console.error('Error fetching application:', error);
+      res.status(500).json({ message: 'Error fetching application' });
+    }
+  });
+  
+  app.post('/api/applications', async (req, res) => {
+    try {
+      const applicationData = insertApplicationSchema.parse(req.body);
+      const application = await storage.createApplication(applicationData);
+      res.status(201).json(application);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      console.error('Error creating application:', error);
+      res.status(500).json({ message: 'Error creating application' });
+    }
+  });
+  
+  app.patch('/api/applications/:id', async (req, res) => {
+    try {
+      const applicationId = parseInt(req.params.id);
+      if (isNaN(applicationId)) {
+        return res.status(400).json({ message: 'Invalid application ID' });
+      }
+      
+      const application = await storage.getApplication(applicationId);
+      if (!application) {
+        return res.status(404).json({ message: 'Application not found' });
+      }
+      
+      const applicationData = insertApplicationSchema.partial().parse(req.body);
+      const updatedApplication = await storage.updateApplication(applicationId, applicationData);
+      res.json(updatedApplication);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      console.error('Error updating application:', error);
+      res.status(500).json({ message: 'Error updating application' });
+    }
+  });
+  
+  app.delete('/api/applications/:id', async (req, res) => {
+    try {
+      const applicationId = parseInt(req.params.id);
+      if (isNaN(applicationId)) {
+        return res.status(400).json({ message: 'Invalid application ID' });
+      }
+      
+      const success = await storage.deleteApplication(applicationId);
+      if (!success) {
+        return res.status(404).json({ message: 'Application not found' });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error('Error deleting application:', error);
+      res.status(500).json({ message: 'Error deleting application' });
+    }
+  });
+  
+  // Get forms by application
+  app.get('/api/applications/:id/forms', async (req, res) => {
+    try {
+      const applicationId = parseInt(req.params.id);
+      if (isNaN(applicationId)) {
+        return res.status(400).json({ message: 'Invalid application ID' });
+      }
+      
+      const forms = await storage.getFormsByApplication(applicationId);
+      res.json(forms);
+    } catch (error) {
+      console.error('Error fetching application forms:', error);
+      res.status(500).json({ message: 'Error fetching application forms' });
+    }
+  });
+  
   // Forms API endpoints
   app.get('/api/forms', async (req, res) => {
     try {

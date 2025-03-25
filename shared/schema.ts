@@ -17,8 +17,28 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+// Applications schema
+export const applications = pgTable("applications", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon").default("app"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertApplicationSchema = createInsertSchema(applications).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertApplication = z.infer<typeof insertApplicationSchema>;
+export type Application = typeof applications.$inferSelect;
+
 // Form Element Types
-export const formElementSchema = z.object({
+// We need to define the base schema first to avoid circular references
+const formElementBase = z.object({
   id: z.string(),
   type: z.enum([
     "text", "number", "date", "textarea", "dropdown", 
@@ -50,6 +70,10 @@ export const formElementSchema = z.object({
     operator: z.string(),
     value: z.string()
   }).optional(),
+});
+
+// Now define the full schema with recursive elements
+export const formElementSchema = formElementBase.extend({
   columns: z.array(z.object({
     id: z.string(),
     elements: z.array(z.lazy(() => formElementSchema)).optional()
@@ -64,6 +88,7 @@ export const forms = pgTable("forms", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  applicationId: integer("application_id"), // Link to the application
   elements: jsonb("elements").notNull(),
   dataSourceId: text("data_source_id"),
   isPublished: boolean("is_published").default(false),
