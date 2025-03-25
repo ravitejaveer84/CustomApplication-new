@@ -62,9 +62,10 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
   });
   
   // Fetch data source fields if a data source is selected
+  const dataSourceId = selectedElement?.dataSource?.id;
   const { data: selectedDataSource, isLoading: loadingDataSource } = useQuery<DataSource>({
-    queryKey: ["/api/datasources", selectedElement?.dataSource?.id],
-    enabled: !!selectedElement?.dataSource?.id && activeTab === "data"
+    queryKey: ["/api/datasources", dataSourceId],
+    enabled: !!dataSourceId && activeTab === "data"
   });
   
   useEffect(() => {
@@ -375,6 +376,10 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
               onValueChange={(value) => {
                 field.onChange(value);
                 handleFieldChange("dataSource.id", value);
+                // Reset the field mapping when data source changes
+                handleFieldChange("dataSource.field", "");
+                // Change to data tab to show the updated fields
+                setTimeout(() => setActiveTab("data"), 100);
               }}
             >
               <SelectTrigger>
