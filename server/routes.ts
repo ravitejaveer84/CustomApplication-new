@@ -186,7 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Application API endpoints
-  app.get('/api/applications', async (req, res) => {
+  app.get('/api/applications', isAuthenticated, async (req, res) => {
     try {
       const applications = await storage.getApplications();
       res.json(applications);
@@ -196,7 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get('/api/applications/:id', async (req, res) => {
+  app.get('/api/applications/:id', isAuthenticated, async (req, res) => {
     try {
       const applicationId = parseInt(req.params.id);
       if (isNaN(applicationId)) {
@@ -215,10 +215,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/applications', async (req, res) => {
+  app.post('/api/applications', isAdmin, async (req, res) => {
     try {
       const applicationData = insertApplicationSchema.parse(req.body);
-      const application = await storage.createApplication(applicationData);
+      
+      // Set createdBy to current user's ID
+      const userData = {
+        ...applicationData,
+        createdBy: req.session.user?.id
+      };
+      
+      const application = await storage.createApplication(userData);
       res.status(201).json(application);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -230,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch('/api/applications/:id', async (req, res) => {
+  app.patch('/api/applications/:id', isAdmin, async (req, res) => {
     try {
       const applicationId = parseInt(req.params.id);
       if (isNaN(applicationId)) {
