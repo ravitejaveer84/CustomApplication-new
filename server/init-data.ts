@@ -1,37 +1,33 @@
 import { db } from './db';
-import { applications } from '@shared/schema';
+import { users } from '@shared/schema';
+import { hash } from 'bcrypt';
 
 export async function initializeDatabase() {
   console.log('Initializing database with default data...');
   
-  // Check if we already have applications
-  const existingApps = await db.select().from(applications);
+  // Check if we already have any users
+  const existingUsers = await db.select().from(users);
   
-  if (existingApps.length === 0) {
-    console.log('No applications found, creating default applications...');
+  if (existingUsers.length === 0) {
+    console.log('No users found, creating default admin user...');
     
-    // Insert default applications
-    await db.insert(applications).values([
-      {
-        name: "Reports",
-        description: "Reporting application with various forms",
-        icon: "bar-chart"
-      },
-      {
-        name: "EDM",
-        description: "Electronic Document Management",
-        icon: "file-text"
-      },
-      {
-        name: "US Custom",
-        description: "US Customs application forms",
-        icon: "clipboard-check"
-      }
-    ]);
+    // Create hashed password for default admin
+    const hashedPassword = await hash('admin123', 10);
     
-    console.log('Default applications created successfully');
+    // Insert default admin user
+    await db.insert(users).values({
+      username: "admin",
+      password: hashedPassword,
+      role: "admin",
+      email: "admin@example.com",
+      name: "Administrator"
+    });
+    
+    console.log('Default admin user created successfully');
+    console.log('Username: admin');
+    console.log('Password: admin123');
   } else {
-    console.log(`Found ${existingApps.length} existing applications, skipping initialization`);
+    console.log(`Found ${existingUsers.length} existing users, skipping initialization`);
   }
 }
 

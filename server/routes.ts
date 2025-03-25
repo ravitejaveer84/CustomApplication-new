@@ -1,15 +1,32 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   insertFormSchema, 
   insertDataSourceSchema, 
   insertFormSubmissionSchema,
-  insertApplicationSchema
+  insertApplicationSchema,
+  insertUserSchema
 } from "@shared/schema";
-import { ZodError } from "zod";
+import { ZodError, z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import pg from 'pg';
+import { compare, hash } from 'bcrypt';
+import session from 'express-session';
+import pgSession from 'connect-pg-simple';
+
+// Session types
+declare module 'express-session' {
+  interface SessionData {
+    user: {
+      id: number;
+      username: string;
+      role: string;
+      name: string;
+    };
+    isAuthenticated: boolean;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Application API endpoints

@@ -38,8 +38,18 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize database with default data
-  await initializeDatabase();
+  // Run migrations
+  try {
+    // Import and run migrations before initializing
+    const { main } = await import('./migrate');
+    await main();
+    console.log('Database migrations completed');
+    
+    // Initialize database with default data
+    await initializeDatabase();
+  } catch (err) {
+    console.error('Error during database setup:', err);
+  }
   
   const server = await registerRoutes(app);
 

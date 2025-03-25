@@ -4,7 +4,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import * as schema from "@shared/schema";
 
-async function main() {
+export async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL environment variable is required");
   }
@@ -24,7 +24,10 @@ async function main() {
   await pool.end();
 }
 
-main().catch((err) => {
-  console.error('Error during migration:', err);
-  process.exit(1);
-});
+// Run migrations when this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    console.error('Error during migration:', err);
+    process.exit(1);
+  });
+}
