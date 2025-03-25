@@ -25,6 +25,7 @@ export const applications = pgTable("applications", {
   name: text("name").notNull(),
   description: text("description"),
   icon: text("icon").default("app"),
+  createdBy: integer("created_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
