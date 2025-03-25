@@ -121,6 +121,7 @@ export const dataSources = pgTable("data_sources", {
   type: text("type").notNull(), // "database", "sharepoint", or "excel"
   config: jsonb("config").notNull(),
   fields: jsonb("fields").default('[]'), // Store the field mappings
+  selectedFields: jsonb("selected_fields").default('[]'), // Store the selected field names
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -131,6 +132,7 @@ export const insertDataSourceSchema = createInsertSchema(dataSources).omit({
   updatedAt: true,
 }).extend({
   fields: z.array(fieldSchema).optional().default([]),
+  selectedFields: z.array(z.string()).optional().default([]),
 });
 
 export type InsertDataSource = z.infer<typeof insertDataSourceSchema>;

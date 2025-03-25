@@ -248,7 +248,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Data source not found' });
       }
       
-      res.json(dataSource);
+      // Get the field mapping for this data source
+      let fields: Array<{name: string, type: string, selected: boolean}> = [];
+      
+      // Get the selected fields from the data source
+      const selectedFields = dataSource.selectedFields || [];
+      
+      // Depending on the type of data source, get the appropriate fields
+      if (dataSource.type === 'database') {
+        // Parse the config as JSON or use empty object if not available
+        const config = typeof dataSource.config === 'string' ? 
+          JSON.parse(dataSource.config) : 
+          (dataSource.config as any || {});
+        
+        const { server, port, database, username, password, schema } = config;
+        
+        // Use default database connection if configuration is missing
+        const pool = new pg.Pool({
+          host: server || process.env.PGHOST,
+          port: parseInt(port || process.env.PGPORT || '5432'),
+          database: database || process.env.PGDATABASE,
+          user: username || process.env.PGUSER,
+          password: password || process.env.PGPASSWORD,
+          connectionTimeoutMillis: 5000,
+        });
+        
+        try {
+          const client = await pool.connect();
+          // Get columns from the specified schema (or public by default)
+          const tableSchema = schema || 'public';
+          
+          const query = `
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_schema = $1 
+            AND table_name = $2
+            ORDER BY ordinal_position
+          `;
+          
+          // If there's a selected table in the configuration, use it
+          const tableName = config.table || 'users'; // Default to users table if not specified
+          
+          const result = await client.query(query, [tableSchema, tableName]);
+          client.release();
+          
+          fields = result.rows.map(row => ({
+            name: row.column_name,
+            type: row.data_type,
+            selected: Array.isArray(selectedFields) && selectedFields.includes(row.column_name)
+          }));
+        } catch (error) {
+          console.error('Error fetching database fields:', error);
+          // Return empty fields array on error
+        } finally {
+          await pool.end();
+        }
+      } else if (dataSource.type === 'sharepoint') {
+        // For SharePoint, return mock fields for now
+        // In a real implementation, this would fetch from the SharePoint API
+        fields = [
+          { name: 'ID', type: 'number', selected: Array.isArray(selectedFields) && selectedFields.includes('ID') },
+          { name: 'Title', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Title') },
+          { name: 'Created', type: 'datetime', selected: Array.isArray(selectedFields) && selectedFields.includes('Created') },
+          { name: 'Modified', type: 'datetime', selected: Array.isArray(selectedFields) && selectedFields.includes('Modified') },
+          { name: 'Author', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Author') },
+          { name: 'Editor', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Editor') },
+          { name: 'Status', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Status') },
+          { name: 'Priority', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Priority') },
+          { name: 'Category', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Category') },
+          { name: 'DueDate', type: 'datetime', selected: Array.isArray(selectedFields) && selectedFields.includes('DueDate') },
+        ];
+      } else if (dataSource.type === 'excel') {
+        // For Excel, return mock fields for now
+        // In a real implementation, this would parse the Excel file
+        fields = [
+          { name: 'Column1', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Column1') },
+          { name: 'Column2', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Column2') },
+          { name: 'Column3', type: 'number', selected: Array.isArray(selectedFields) && selectedFields.includes('Column3') },
+          { name: 'Column4', type: 'datetime', selected: Array.isArray(selectedFields) && selectedFields.includes('Column4') },
+          { name: 'Column5', type: 'number', selected: Array.isArray(selectedFields) && selectedFields.includes('Column5') },
+          { name: 'Column6', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Column6') },
+          { name: 'Column7', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Column7') },
+          { name: 'Column8', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Column8') },
+        ];
+      }
+      
+      // Return the data source with fields
+      res.json({
+        ...dataSource,
+        fields
+      });
     } catch (error) {
       console.error('Error fetching data source:', error);
       res.status(500).json({ message: 'Error fetching data source' });
@@ -311,6 +400,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting data source:', error);
       res.status(500).json({ message: 'Error deleting data source' });
+    }
+  });
+  
+  // Update selected fields for a data source
+  app.patch('/api/datasources/:id/fields', async (req, res) => {
+    try {
+      const dataSourceId = parseInt(req.params.id);
+      if (isNaN(dataSourceId)) {
+        return res.status(400).json({ message: 'Invalid data source ID' });
+      }
+      
+      const dataSource = await storage.getDataSource(dataSourceId);
+      if (!dataSource) {
+        return res.status(404).json({ message: 'Data source not found' });
+      }
+      
+      // Extract field names that are selected
+      const selectedFields = req.body.fields
+        .filter((field: any) => field.selected)
+        .map((field: any) => field.name);
+      
+      // Update the data source with the selected fields
+      const updatedDataSource = await storage.updateDataSource(dataSourceId, {
+        selectedFields
+      });
+      
+      res.json(updatedDataSource);
+    } catch (error) {
+      console.error('Error updating data source fields:', error);
+      res.status(500).json({ message: 'Error updating data source fields' });
     }
   });
   
