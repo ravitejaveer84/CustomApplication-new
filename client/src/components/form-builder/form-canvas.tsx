@@ -59,7 +59,7 @@ export function FormCanvas({
           <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
             <div className="absolute top-2 right-2 flex space-x-1">
               <Button variant="ghost" size="icon" className="h-5 w-5">
-                <ArrowsUpDown className="h-3 w-3 text-gray-500" />
+                <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <Cog className="h-3 w-3 text-gray-500" />
@@ -89,7 +89,7 @@ export function FormCanvas({
           <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
             <div className="absolute top-2 right-2 flex space-x-1">
               <Button variant="ghost" size="icon" className="h-5 w-5">
-                <ArrowsUpDown className="h-3 w-3 text-gray-500" />
+                <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <Cog className="h-3 w-3 text-gray-500" />
@@ -119,7 +119,7 @@ export function FormCanvas({
           <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
             <div className="absolute top-2 right-2 flex space-x-1">
               <Button variant="ghost" size="icon" className="h-5 w-5">
-                <ArrowsUpDown className="h-3 w-3 text-gray-500" />
+                <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <Cog className="h-3 w-3 text-gray-500" />
@@ -148,7 +148,7 @@ export function FormCanvas({
           <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
             <div className="absolute top-2 right-2 flex space-x-1">
               <Button variant="ghost" size="icon" className="h-5 w-5">
-                <ArrowsUpDown className="h-3 w-3 text-gray-500" />
+                <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <Cog className="h-3 w-3 text-gray-500" />
@@ -177,7 +177,7 @@ export function FormCanvas({
           <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
             <div className="absolute top-2 right-2 flex space-x-1">
               <Button variant="ghost" size="icon" className="h-5 w-5">
-                <ArrowsUpDown className="h-3 w-3 text-gray-500" />
+                <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <Cog className="h-3 w-3 text-gray-500" />
@@ -207,7 +207,7 @@ export function FormCanvas({
           <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
             <div className="absolute top-2 right-2 flex space-x-1">
               <Button variant="ghost" size="icon" className="h-5 w-5">
-                <ArrowsUpDown className="h-3 w-3 text-gray-500" />
+                <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <Cog className="h-3 w-3 text-gray-500" />
@@ -239,7 +239,7 @@ export function FormCanvas({
           <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
             <div className="absolute top-2 right-2 flex space-x-1">
               <Button variant="ghost" size="icon" className="h-5 w-5">
-                <ArrowsUpDown className="h-3 w-3 text-gray-500" />
+                <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <Cog className="h-3 w-3 text-gray-500" />
@@ -271,7 +271,7 @@ export function FormCanvas({
           <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
             <div className="absolute top-2 right-2 flex space-x-1">
               <Button variant="ghost" size="icon" className="h-5 w-5">
-                <ArrowsUpDown className="h-3 w-3 text-gray-500" />
+                <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <Cog className="h-3 w-3 text-gray-500" />
@@ -301,7 +301,7 @@ export function FormCanvas({
           >
             <div className="absolute top-2 right-2 flex space-x-1">
               <Button variant="ghost" size="icon" className="h-5 w-5">
-                <ArrowsUpDown className="h-3 w-3 text-gray-500" />
+                <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <Cog className="h-3 w-3 text-gray-500" />
@@ -342,7 +342,7 @@ export function FormCanvas({
           >
             <div className="absolute top-2 right-2 flex space-x-1 z-10">
               <Button variant="ghost" size="icon" className="h-5 w-5">
-                <ArrowsUpDown className="h-3 w-3 text-gray-500" />
+                <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <Cog className="h-3 w-3 text-gray-500" />
@@ -390,7 +390,7 @@ export function FormCanvas({
           >
             <div className="absolute top-0 right-0 flex space-x-1">
               <Button variant="ghost" size="icon" className="h-5 w-5">
-                <ArrowsUpDown className="h-3 w-3 text-gray-500" />
+                <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <Cog className="h-3 w-3 text-gray-500" />

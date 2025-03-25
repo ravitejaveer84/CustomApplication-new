@@ -41,22 +41,21 @@ export function Sidebar({ isOpen }: SidebarProps) {
               <Link 
                 key={itemIndex} 
                 href={item.path}
-              >
-                <a className={cn(
+                className={cn(
                   "flex items-center p-2 space-x-2 rounded",
                   location === item.path 
                     ? "bg-gray-100 text-primary" 
                     : "hover:bg-gray-100"
+                )}
+              >
+                <span className={cn(
+                  location === item.path 
+                    ? "text-primary" 
+                    : "text-gray-500"
                 )}>
-                  <span className={cn(
-                    location === item.path 
-                      ? "text-primary" 
-                      : "text-gray-500"
-                  )}>
-                    {getIcon(item.icon)}
-                  </span>
-                  <span>{item.label}</span>
-                </a>
+                  {getIcon(item.icon)}
+                </span>
+                <span>{item.label}</span>
               </Link>
             ))}
           </div>
