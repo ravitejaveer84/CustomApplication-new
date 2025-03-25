@@ -73,7 +73,7 @@ const formElementBase = z.object({
 });
 
 // Now define the full schema with recursive elements
-export const formElementSchema = formElementBase.extend({
+export const formElementSchema: z.ZodType<any> = formElementBase.extend({
   columns: z.array(z.object({
     id: z.string(),
     elements: z.array(z.lazy(() => formElementSchema)).optional()

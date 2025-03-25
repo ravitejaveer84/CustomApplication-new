@@ -236,6 +236,7 @@ export class MemStorage implements IStorage {
       type: insertDataSource.type,
       config: insertDataSource.config,
       fields: insertDataSource.fields || [],
+      selectedFields: insertDataSource.selectedFields || [],
       createdAt: now,
       updatedAt: now
     };
