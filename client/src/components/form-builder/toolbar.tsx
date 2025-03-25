@@ -65,7 +65,7 @@ export function Toolbar({
           return;
         }
         
-        await apiRequest(`/api/forms/${formId}`, {
+        await apiRequest<any>(`/api/forms/${formId}`, {
           method: 'PATCH',
           data: {}
         });
@@ -98,7 +98,7 @@ export function Toolbar({
       
       setIsPublishing(true);
       
-      await apiRequest(`/api/forms/${formId}/publish`, {
+      await apiRequest<any>(`/api/forms/${formId}/publish`, {
         method: 'POST'
       });
       

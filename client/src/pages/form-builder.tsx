@@ -8,7 +8,7 @@ import { PropertiesPanel } from "@/components/form-builder/properties-panel";
 import { DataSourceModal } from "@/components/form-builder/data-source-modal";
 import { Button } from "@/components/ui/button";
 import { Database, ArrowLeft, Loader2 } from "lucide-react";
-import { FormElement } from "@shared/schema";
+import { FormElement, Form, Application } from "@shared/schema";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -51,7 +51,10 @@ export default function FormBuilder() {
     if (formData) {
       setFormName(formData.name);
       setFormDescription(formData.description || "");
-      setFormElements(formData.elements);
+      // Make sure elements is typed correctly
+      if (Array.isArray(formData.elements)) {
+        setFormElements(formData.elements as FormElement[]);
+      }
       setSavedFormId(formData.id);
     }
   }, [formData]);
@@ -66,19 +69,21 @@ export default function FormBuilder() {
     }) => {
       if (savedFormId) {
         // Update existing form
-        return apiRequest(`/api/forms/${savedFormId}`, {
+        const response = await apiRequest<Form>(`/api/forms/${savedFormId}`, {
           method: 'PATCH',
           data: formData
         });
+        return response;
       } else {
         // Create new form
-        return apiRequest('/api/forms', {
+        const response = await apiRequest<Form>('/api/forms', {
           method: 'POST',
           data: {
             ...formData,
             isPublished: false
           }
         });
+        return response;
       }
     },
     onSuccess: (data) => {

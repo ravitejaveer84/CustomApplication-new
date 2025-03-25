@@ -78,10 +78,13 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
           };
       
       // Send to the API
-      await apiRequest('POST', '/api/datasources', {
-        name: data.name,
-        type: data.type,
-        config
+      await apiRequest<any>('/api/datasources', {
+        method: 'POST',
+        data: {
+          name: data.name,
+          type: data.type,
+          config
+        }
       });
       
       // Invalidate the data sources query
