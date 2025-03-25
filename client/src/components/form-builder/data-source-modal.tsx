@@ -34,20 +34,67 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
 
   const testConnection = async (data: DataSourceFormValues) => {
     try {
+      if (!data.name) {
+        toast({
+          title: "Error",
+          description: "Please provide a name for the data source",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Build the configuration object based on data source type
+      let config: any = {};
+      
+      if (data.type === 'database') {
+        if (!data.server || !data.database) {
+          toast({
+            title: "Error",
+            description: "Server and database name are required for database connections",
+            variant: "destructive"
+          });
+          return;
+        }
+        config = {
+          server: data.server,
+          port: data.port,
+          database: data.database,
+          username: data.username,
+          password: data.password
+        };
+      } else if (data.type === 'sharepoint') {
+        if (!data.sharePointUrl || !data.listName) {
+          toast({
+            title: "Error",
+            description: "SharePoint URL and list name are required",
+            variant: "destructive"
+          });
+          return;
+        }
+        config = {
+          url: data.sharePointUrl,
+          listName: data.listName
+        };
+      } else if (data.type === 'excel') {
+        if (!data.fileUrl) {
+          toast({
+            title: "Error",
+            description: "File URL is required for Excel connections",
+            variant: "destructive"
+          });
+          return;
+        }
+        config = {
+          fileUrl: data.fileUrl
+        };
+      }
+
       const response = await fetch('/api/datasources/test-connection', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: data.type,
-          config: {
-            server: data.server,
-            port: data.port,
-            database: data.database,
-            username: data.username,
-            password: data.password,
-            url: data.sharePointUrl || data.fileUrl,
-            listName: data.listName
-          }
+          config
         })
       });
 
@@ -73,21 +120,68 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
 
   const handleSave = async (data: DataSourceFormValues) => {
     try {
+      if (!data.name) {
+        toast({
+          title: "Error",
+          description: "Please provide a name for the data source",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Build the configuration object based on data source type
+      let config: any = {};
+      
+      if (data.type === 'database') {
+        if (!data.server || !data.database) {
+          toast({
+            title: "Error",
+            description: "Server and database name are required for database connections",
+            variant: "destructive"
+          });
+          return;
+        }
+        config = {
+          server: data.server,
+          port: data.port,
+          database: data.database,
+          username: data.username,
+          password: data.password
+        };
+      } else if (data.type === 'sharepoint') {
+        if (!data.sharePointUrl || !data.listName) {
+          toast({
+            title: "Error",
+            description: "SharePoint URL and list name are required",
+            variant: "destructive"
+          });
+          return;
+        }
+        config = {
+          url: data.sharePointUrl,
+          listName: data.listName
+        };
+      } else if (data.type === 'excel') {
+        if (!data.fileUrl) {
+          toast({
+            title: "Error",
+            description: "File URL is required for Excel connections",
+            variant: "destructive"
+          });
+          return;
+        }
+        config = {
+          fileUrl: data.fileUrl
+        };
+      }
+
       const response = await fetch('/api/datasources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: data.name,
           type: data.type,
-          config: {
-            server: data.server,
-            port: data.port,
-            database: data.database,
-            username: data.username,
-            password: data.password,
-            url: data.sharePointUrl || data.fileUrl,
-            listName: data.listName
-          }
+          config
         })
       });
 
@@ -102,9 +196,10 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
         description: "Data source saved successfully!"
       });
     } catch (error) {
+      console.error('Error saving data source:', error);
       toast({
         title: "Error",
-        description: "Failed to save data source",
+        description: error instanceof Error ? error.message : "Failed to save data source",
         variant: "destructive"
       });
     }

@@ -148,7 +148,7 @@ export default function FormsList() {
                       </span>
                     </TableCell>
                     <TableCell>{form.dataSourceId || "None"}</TableCell>
-                    <TableCell>{new Date(form.updatedAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{form.updatedAt ? new Date(form.updatedAt).toLocaleDateString() : "-"}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
