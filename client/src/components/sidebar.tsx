@@ -8,6 +8,7 @@ import { NAVIGATION_ITEMS } from "@/lib/constants";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Application, Form } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen }: SidebarProps) {
   const [location] = useLocation();
   const [hoveredAppId, setHoveredAppId] = useState<number | null>(null);
+  const { isAdmin, user } = useAuth();
   
   // Fetch applications
   const { data: applications = [], isLoading: isLoadingApps } = useQuery<Application[]>({
@@ -103,7 +105,9 @@ export function Sidebar({ isOpen }: SidebarProps) {
             </div>
           ) : (
             <div className="space-y-1">
-              {applications?.map((app: Application) => (
+              {/* Filter out default sample applications */}
+              {applications?.filter(app => app.createdBy !== undefined || isAdmin)
+                .map((app: Application) => (
                 <div 
                   key={app.id}
                   className="relative"
@@ -155,24 +159,28 @@ export function Sidebar({ isOpen }: SidebarProps) {
                             </Link>
                           ))}
                           
-                          <div className="border-t border-gray-200 pt-2 mt-2">
-                            <Link
-                              href={`/applications/${app.id}/new-form`}
-                              className="block p-2 text-sm hover:bg-gray-100 rounded text-primary font-medium"
-                            >
-                              + New Form
-                            </Link>
-                          </div>
+                          {isAdmin && (
+                            <div className="border-t border-gray-200 pt-2 mt-2">
+                              <Link
+                                href={`/applications/${app.id}/new-form`}
+                                className="block p-2 text-sm hover:bg-gray-100 rounded text-primary font-medium"
+                              >
+                                + New Form
+                              </Link>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="p-2 text-sm text-gray-500">
                           No forms yet
-                          <Link
-                            href={`/applications/${app.id}/new-form`}
-                            className="block mt-2 text-sm text-primary font-medium"
-                          >
-                            + Create Form
-                          </Link>
+                          {isAdmin && (
+                            <Link
+                              href={`/applications/${app.id}/new-form`}
+                              className="block mt-2 text-sm text-primary font-medium"
+                            >
+                              + Create Form
+                            </Link>
+                          )}
                         </div>
                       )}
                     </div>
@@ -182,13 +190,16 @@ export function Sidebar({ isOpen }: SidebarProps) {
             </div>
           )}
           
-          <Link 
-            href="/applications/new"
-            className="flex items-center mt-2 p-2 space-x-2 rounded text-primary hover:bg-gray-100"
-          >
-            <span className="text-primary">+</span>
-            <span>New Application</span>
-          </Link>
+          {/* Only show New Application link for admin users */}
+          {isAdmin && (
+            <Link 
+              href="/applications/new"
+              className="flex items-center mt-2 p-2 space-x-2 rounded text-primary hover:bg-gray-100"
+            >
+              <span className="text-primary">+</span>
+              <span>New Application</span>
+            </Link>
+          )}
         </div>
       </nav>
     </aside>
