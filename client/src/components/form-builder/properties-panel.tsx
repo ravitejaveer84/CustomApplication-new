@@ -47,9 +47,15 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
   });
   
   // Fetch data sources
-  const { data: dataSources, isLoading } = useQuery({
+  const { data: dataSources, isLoading: loadingDataSources } = useQuery({
     queryKey: ["/api/datasources"],
     enabled: activeTab === "data"
+  });
+  
+  // Fetch data source fields if a data source is selected
+  const { data: selectedDataSource, isLoading: loadingDataSource } = useQuery({
+    queryKey: ["/api/datasources", selectedElement?.dataSource?.id],
+    enabled: !!selectedElement?.dataSource?.id && activeTab === "data"
   });
   
   useEffect(() => {
@@ -366,12 +372,12 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
                 <SelectValue placeholder="Select data source" />
               </SelectTrigger>
               <SelectContent>
-                {isLoading ? (
+                {loadingDataSources ? (
                   <SelectItem value="loading" disabled>Loading...</SelectItem>
-                ) : dataSources?.length === 0 ? (
+                ) : !dataSources || dataSources.length === 0 ? (
                   <SelectItem value="no-data-sources" disabled>No data sources</SelectItem>
                 ) : (
-                  dataSources?.map((source: any) => (
+                  dataSources.map((source: any) => (
                     <SelectItem key={source.id} value={source.id.toString()}>
                       {source.name}
                     </SelectItem>
@@ -404,11 +410,14 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
               <SelectContent>
                 {!selectedElement.dataSource?.id ? (
                   <SelectItem value="select-datasource-first" disabled>Select a data source first</SelectItem>
+                ) : loadingDataSource ? (
+                  <SelectItem value="loading-fields" disabled>Loading fields...</SelectItem>
+                ) : !selectedDataSource || !selectedDataSource.fields || selectedDataSource.fields.length === 0 ? (
+                  <SelectItem value="no-fields" disabled>No fields available</SelectItem>
                 ) : (
-                  // Mock fields, in a real app these would come from the API based on the selected data source
-                  ["first_name", "last_name", "email", "phone", "department", "position"].map((field) => (
-                    <SelectItem key={field} value={field}>
-                      {field}
+                  Array.isArray(selectedDataSource.fields) && selectedDataSource.fields.map((field: any) => (
+                    <SelectItem key={field.name} value={field.name}>
+                      {field.name} ({field.type})
                     </SelectItem>
                   ))
                 )}
