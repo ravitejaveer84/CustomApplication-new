@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 type DataSourceFormValues = {
   name: string;
@@ -19,6 +22,12 @@ type DataSourceFormValues = {
   fileUrl?: string;
 };
 
+type DataField = {
+  name: string;
+  type: string;
+  selected: boolean;
+};
+
 interface DataSourceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,10 +36,84 @@ interface DataSourceModalProps {
 export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
   const [activeTab, setActiveTab] = useState("connection");
   const [isConnectionTested, setIsConnectionTested] = useState(false);
+  const [fields, setFields] = useState<DataField[]>([]);
+  const [previewData, setPreviewData] = useState<any[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const form = useForm<DataSourceFormValues>();
+  
+  // Effect to generate sample fields when connection is tested successfully
+  useEffect(() => {
+    if (isConnectionTested) {
+      // In a real application, these would come from the backend
+      // For now, generate sample fields based on the data source type
+      const type = form.getValues('type');
+      
+      let sampleFields: DataField[] = [];
+      
+      if (type === 'database') {
+        sampleFields = [
+          { name: 'id', type: 'number', selected: true },
+          { name: 'name', type: 'text', selected: true },
+          { name: 'email', type: 'text', selected: true },
+          { name: 'created_date', type: 'datetime', selected: false },
+          { name: 'status', type: 'text', selected: false },
+          { name: 'department', type: 'text', selected: false },
+          { name: 'manager_id', type: 'number', selected: false },
+        ];
+      } else if (type === 'sharepoint') {
+        sampleFields = [
+          { name: 'ID', type: 'number', selected: true },
+          { name: 'Title', type: 'text', selected: true },
+          { name: 'Modified', type: 'datetime', selected: true },
+          { name: 'Created', type: 'datetime', selected: false },
+          { name: 'Author', type: 'text', selected: false },
+          { name: 'Category', type: 'text', selected: false },
+          { name: 'Status', type: 'text', selected: false },
+        ];
+      } else if (type === 'excel') {
+        sampleFields = [
+          { name: 'Column1', type: 'text', selected: true },
+          { name: 'Column2', type: 'text', selected: true },
+          { name: 'Column3', type: 'number', selected: true },
+          { name: 'Column4', type: 'datetime', selected: false },
+          { name: 'Column5', type: 'text', selected: false },
+          { name: 'Column6', type: 'number', selected: false },
+        ];
+      }
+      
+      setFields(sampleFields);
+      
+      // Also generate sample preview data
+      generateSamplePreviewData(sampleFields);
+    }
+  }, [isConnectionTested]);
+  
+  const generateSamplePreviewData = (fields: DataField[]) => {
+    // Generate 5 rows of sample data
+    const data = [];
+    for (let i = 0; i < 5; i++) {
+      const row: Record<string, any> = {};
+      fields.forEach(field => {
+        if (field.type === 'number') {
+          row[field.name] = Math.floor(Math.random() * 1000);
+        } else if (field.type === 'datetime') {
+          row[field.name] = new Date().toISOString().substring(0, 10);
+        } else {
+          row[field.name] = `Sample ${field.name} ${i+1}`;
+        }
+      });
+      data.push(row);
+    }
+    setPreviewData(data);
+  };
+  
+  const toggleFieldSelection = (index: number) => {
+    const updatedFields = [...fields];
+    updatedFields[index].selected = !updatedFields[index].selected;
+    setFields(updatedFields);
+  };
 
   const testConnection = async (data: DataSourceFormValues) => {
     try {
@@ -129,6 +212,16 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
         return;
       }
 
+      // Validate connection was tested
+      if (!isConnectionTested) {
+        toast({
+          title: "Error",
+          description: "Please test the connection before saving",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Build the configuration object based on data source type
       let config: any = {};
       
@@ -175,13 +268,22 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
         };
       }
 
+      // Get the selected fields
+      const selectedFields = fields
+        .filter(field => field.selected)
+        .map(field => ({
+          name: field.name,
+          type: field.type
+        }));
+
       const response = await fetch('/api/datasources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: data.name,
           type: data.type,
-          config
+          config,
+          fields: selectedFields
         })
       });
 
@@ -359,18 +461,93 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
               )}
               
               {activeTab === "fields" && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">
-                    Field mapping will be available after a successful connection test.
-                  </p>
+                <div>
+                  {!isConnectionTested ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">
+                        Field mapping will be available after a successful connection test.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <p className="text-sm text-gray-600">
+                        Select the fields you want to include in your form. These fields will be available when mapping form elements.
+                      </p>
+                      
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12">Include</TableHead>
+                            <TableHead>Field Name</TableHead>
+                            <TableHead>Type</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {fields.map((field, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                <div className="flex items-center">
+                                  <Checkbox 
+                                    id={`field-${index}`} 
+                                    checked={field.selected} 
+                                    onCheckedChange={() => toggleFieldSelection(index)}
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Label 
+                                  htmlFor={`field-${index}`}
+                                  className="cursor-pointer"
+                                >
+                                  {field.name}
+                                </Label>
+                              </TableCell>
+                              <TableCell>{field.type}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </div>
               )}
               
               {activeTab === "preview" && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">
-                    Data preview will be available after a successful connection test.
-                  </p>
+                <div>
+                  {!isConnectionTested ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">
+                        Data preview will be available after a successful connection test.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <p className="text-sm text-gray-600">
+                        Preview of data from the selected data source. Only the first 5 rows are shown.
+                      </p>
+                      
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              {fields.filter(f => f.selected).map((field, index) => (
+                                <TableHead key={index}>{field.name}</TableHead>
+                              ))}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {previewData.map((row, rowIndex) => (
+                              <TableRow key={rowIndex}>
+                                {fields.filter(f => f.selected).map((field, fieldIndex) => (
+                                  <TableCell key={fieldIndex}>{row[field.name]}</TableCell>
+                                ))}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="flex justify-end space-x-2 mt-4">
