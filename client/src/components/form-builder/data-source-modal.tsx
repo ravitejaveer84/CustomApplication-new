@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
 type DataSourceFormValues = {
@@ -24,7 +24,7 @@ interface DataSourceModalProps {
   onClose: () => void;
 }
 
-export default function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
+export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
   const [activeTab, setActiveTab] = useState("connection");
   const [isConnectionTested, setIsConnectionTested] = useState(false);
   const { toast } = useToast();
