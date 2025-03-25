@@ -18,7 +18,7 @@ async function main() {
 
   // This will run all migrations in the "migrations" directory
   console.log('Running migrations...');
-  await migrate(db, { migrationsFolder: './drizzle' });
+  await migrate(db, { migrationsFolder: './migrations' });
   
   console.log('Migrations completed successfully');
   await pool.end();
