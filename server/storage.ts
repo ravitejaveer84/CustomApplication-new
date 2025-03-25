@@ -125,8 +125,10 @@ export class MemStorage implements IStorage {
     const id = this.applicationCurrentId++;
     const now = new Date();
     const application: Application = { 
-      ...insertApplication, 
       id,
+      name: insertApplication.name,
+      description: insertApplication.description || null,
+      icon: insertApplication.icon || null,
       createdAt: now,
       updatedAt: now
     };
@@ -170,8 +172,13 @@ export class MemStorage implements IStorage {
     const id = this.formCurrentId++;
     const now = new Date();
     const form: Form = { 
-      ...insertForm, 
       id,
+      name: insertForm.name,
+      description: insertForm.description || null,
+      elements: insertForm.elements,
+      applicationId: insertForm.applicationId || null,
+      dataSourceId: insertForm.dataSourceId || null,
+      isPublished: insertForm.isPublished || null,
       createdAt: now,
       updatedAt: now
     };
@@ -224,8 +231,11 @@ export class MemStorage implements IStorage {
     const id = this.dataSourceCurrentId++;
     const now = new Date();
     const dataSource: DataSource = {
-      ...insertDataSource,
       id,
+      name: insertDataSource.name,
+      type: insertDataSource.type,
+      config: insertDataSource.config,
+      fields: insertDataSource.fields || [],
       createdAt: now,
       updatedAt: now
     };
@@ -261,8 +271,9 @@ export class MemStorage implements IStorage {
     const id = this.formSubmissionCurrentId++;
     const now = new Date();
     const submission: FormSubmission = {
-      ...insertSubmission,
       id,
+      formId: insertSubmission.formId,
+      data: insertSubmission.data,
       createdAt: now
     };
     this.formSubmissions.set(id, submission);
