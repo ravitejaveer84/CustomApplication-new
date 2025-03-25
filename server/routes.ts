@@ -346,6 +346,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           client.release();
           
           // Return success with database info
+          // Get sample metadata about tables in the database
+          const tableQuery = await client.query(`
+            SELECT table_name, column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            ORDER BY table_name, ordinal_position 
+            LIMIT 50
+          `);
+          
+          // Group columns by table to create field metadata
+          const fieldsByTable = tableQuery.rows.reduce((acc: any, row: any) => {
+            const { table_name, column_name, data_type } = row;
+            if (!acc[table_name]) {
+              acc[table_name] = [];
+            }
+            acc[table_name].push({
+              name: column_name,
+              type: data_type,
+              selected: ["id", "name", "title", "email", "description"].includes(column_name.toLowerCase())
+            });
+            return acc;
+          }, {});
+          
           res.json({
             success: true,
             message: 'Database connection successful',
@@ -353,7 +376,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               server,
               database,
               version: result.rows[0].version
-            }
+            },
+            tables: Object.keys(fieldsByTable),
+            fields: fieldsByTable
           });
         } catch (error) {
           const dbError = error as Error;
@@ -377,13 +402,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // In a real implementation, this would verify the SharePoint connection
+        // Generate sample SharePoint list columns as fields
+        const sampleFields = [
+          { name: 'ID', type: 'number', selected: true },
+          { name: 'Title', type: 'text', selected: true },
+          { name: 'Created', type: 'datetime', selected: true },
+          { name: 'Modified', type: 'datetime', selected: true },
+          { name: 'Author', type: 'text', selected: false },
+          { name: 'Editor', type: 'text', selected: false },
+          { name: 'Status', type: 'text', selected: false },
+          { name: 'Priority', type: 'text', selected: false },
+          { name: 'Category', type: 'text', selected: false },
+          { name: 'DueDate', type: 'datetime', selected: false },
+        ];
+        
         res.json({
           success: true,
           message: 'SharePoint connection successful',
           info: {
             url,
             listName
-          }
+          },
+          fields: sampleFields
         });
       } else if (type === 'excel') {
         // Handle OneDrive/SharePoint Excel file connection
@@ -396,13 +436,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        // In a real implementation, this would verify the Excel file is accessible
+        // In a real implementation, this would verify the Excel file is accessible and parse columns
+        // Generate sample Excel columns as fields
+        const sampleFields = [
+          { name: 'Column1', type: 'text', selected: true },
+          { name: 'Column2', type: 'text', selected: true },
+          { name: 'Column3', type: 'number', selected: true },
+          { name: 'Column4', type: 'datetime', selected: false },
+          { name: 'Column5', type: 'number', selected: false },
+          { name: 'Column6', type: 'text', selected: false },
+          { name: 'Column7', type: 'text', selected: false },
+          { name: 'Column8', type: 'text', selected: false },
+        ];
+        
         res.json({
           success: true,
           message: 'Excel file connection successful',
           info: {
             fileUrl
-          }
+          },
+          fields: sampleFields
         });
       } else {
         res.status(400).json({

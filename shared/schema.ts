@@ -105,12 +105,22 @@ export const insertFormSchema = createInsertSchema(forms).omit({
 export type InsertForm = z.infer<typeof insertFormSchema>;
 export type Form = typeof forms.$inferSelect;
 
+// Define Field Type schema
+export const fieldSchema = z.object({
+  name: z.string(),
+  type: z.string(),
+  selected: z.boolean().optional(),
+});
+
+export type Field = z.infer<typeof fieldSchema>;
+
 // Data Sources schema
 export const dataSources = pgTable("data_sources", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  type: text("type").notNull(), // "database" or "sharepoint"
+  type: text("type").notNull(), // "database", "sharepoint", or "excel"
   config: jsonb("config").notNull(),
+  fields: jsonb("fields").default('[]'), // Store the field mappings
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -119,6 +129,8 @@ export const insertDataSourceSchema = createInsertSchema(dataSources).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  fields: z.array(fieldSchema).optional().default([]),
 });
 
 export type InsertDataSource = z.infer<typeof insertDataSourceSchema>;
