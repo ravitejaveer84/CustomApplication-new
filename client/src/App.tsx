@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -37,21 +37,22 @@ function Router() {
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [location] = useState(window.location.pathname);
+  const [location] = useLocation();
   
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
   
-  // Check if the current route is the form builder which has its own layout
-  const isFormBuilderRoute = 
+  // Check if the current route is using a specialized layout
+  const usesCustomLayout = 
     location.startsWith('/form-builder') || 
-    location.startsWith('/applications/') && location.includes('/new-form');
+    (location.startsWith('/applications/') && location.includes('/new-form')) ||
+    location === '/applications/new';
   
   return (
     <QueryClientProvider client={queryClient}>
-      {isFormBuilderRoute ? (
-        // Form builder has its own layout, so just render the router
+      {usesCustomLayout ? (
+        // These pages use a custom layout without sidebar and header
         <div className="h-screen w-full">
           <Router />
           <Toaster />

@@ -408,7 +408,7 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
           <FormItem>
             <FormLabel>Data Source</FormLabel>
             <Select 
-              value={field.value} 
+              value={field.value ? field.value.toString() : ""} 
               onValueChange={(value) => {
                 field.onChange(value);
                 const numericValue = parseInt(value);
@@ -468,7 +468,7 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
               )}
             </div>
             <Select 
-              value={field.value} 
+              value={field.value ? field.value.toString() : ""} 
               onValueChange={(value) => {
                 field.onChange(value);
                 const dataSource = {
