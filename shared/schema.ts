@@ -34,6 +34,8 @@ export const insertApplicationSchema = createInsertSchema(applications).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  createdBy: z.number().optional()
 });
 
 export type InsertApplication = z.infer<typeof insertApplicationSchema>;

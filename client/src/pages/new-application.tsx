@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 

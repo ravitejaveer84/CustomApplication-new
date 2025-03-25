@@ -105,8 +105,13 @@ export function Sidebar({ isOpen }: SidebarProps) {
             </div>
           ) : (
             <div className="space-y-1">
-              {/* Filter out default sample applications */}
-              {applications?.filter(app => app.createdBy !== undefined || isAdmin)
+              {/* Show applications where the user is admin or the application is created by the admin */}
+              {applications?.filter(app => {
+                  // Admin sees all apps
+                  if (isAdmin) return true;
+                  // Users only see apps with a specific createdBy value
+                  return app.createdBy === (user?.id || 0);
+                })
                 .map((app: Application) => (
                 <div 
                   key={app.id}

@@ -75,23 +75,26 @@ export class MemStorage implements IStorage {
   }
   
   private async initializeDefaultApplications() {
-    // Create default applications
+    // Create default applications with admin as creator (id 1)
     await this.createApplication({
       name: "Reports",
       description: "Reporting application with various forms",
-      icon: "bar-chart"
+      icon: "bar-chart",
+      createdBy: 1
     });
     
     await this.createApplication({
       name: "EDM",
       description: "Electronic Document Management",
-      icon: "file-text"
+      icon: "file-text",
+      createdBy: 1
     });
     
     await this.createApplication({
       name: "US Custom",
       description: "US Customs application forms",
-      icon: "clipboard-check"
+      icon: "clipboard-check",
+      createdBy: 1
     });
   }
 
@@ -141,6 +144,7 @@ export class MemStorage implements IStorage {
       name: insertApplication.name,
       description: insertApplication.description || null,
       icon: insertApplication.icon || null,
+      createdBy: insertApplication.createdBy || null,
       createdAt: now,
       updatedAt: now
     };
