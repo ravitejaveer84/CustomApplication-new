@@ -6,7 +6,8 @@ import {
   insertDataSourceSchema, 
   insertFormSubmissionSchema,
   insertApplicationSchema,
-  insertUserSchema
+  insertUserSchema,
+  type User
 } from "@shared/schema";
 import { ZodError, z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -29,6 +30,161 @@ declare module 'express-session' {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure session
+  const PgSession = pgSession(session);
+  app.use(session({
+    store: new PgSession({
+      pool: new pg.Pool({ connectionString: process.env.DATABASE_URL }),
+      tableName: 'session',
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET || 'formbuilder-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      secure: process.env.NODE_ENV === 'production'
+    }
+  }));
+
+  // Middleware to check if user is authenticated
+  const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+    if (req.session.isAuthenticated) {
+      next();
+    } else {
+      res.status(401).json({ message: 'Not authenticated' });
+    }
+  };
+
+  // Middleware to check if user is admin
+  const isAdmin = (req: Request, res: Response, next: NextFunction) => {
+    if (req.session.isAuthenticated && req.session.user?.role === 'admin') {
+      next();
+    } else {
+      res.status(403).json({ message: 'Admin access required' });
+    }
+  };
+
+  // Authentication routes
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      // Validate input
+      if (!username || !password) {
+        return res.status(400).json({ message: 'Username and password are required' });
+      }
+      
+      // Get user from storage
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid username or password' });
+      }
+      
+      // Check password
+      const passwordMatch = await compare(password, user.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ message: 'Invalid username or password' });
+      }
+      
+      // Set session data
+      req.session.isAuthenticated = true;
+      req.session.user = {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        name: user.name
+      };
+      
+      // Return user data without password
+      res.json({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        name: user.name,
+        email: user.email
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'Error during login' });
+    }
+  });
+  
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ message: 'Error during logout' });
+      }
+      res.json({ message: 'Logged out successfully' });
+    });
+  });
+  
+  app.get('/api/auth/me', (req, res) => {
+    if (req.session.isAuthenticated && req.session.user) {
+      res.json(req.session.user);
+    } else {
+      res.status(401).json({ message: 'Not authenticated' });
+    }
+  });
+  
+  // User management routes (admin only)
+  app.get('/api/users', isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      
+      // Don't send passwords
+      const safeUsers = users.map((user: User) => ({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        name: user.name,
+        email: user.email
+      }));
+      
+      res.json(safeUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ message: 'Error fetching users' });
+    }
+  });
+  
+  app.post('/api/users', isAdmin, async (req, res) => {
+    try {
+      // Extended schema for user creation with password validation
+      const createUserSchema = insertUserSchema.extend({
+        password: z.string().min(8).max(100)
+      });
+      
+      const userData = createUserSchema.parse(req.body);
+      
+      // Hash the password
+      const hashedPassword = await hash(userData.password, 10);
+      
+      // Create user with hashed password
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword
+      });
+      
+      // Return user without password
+      res.status(201).json({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        name: user.name,
+        email: user.email
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      console.error('Error creating user:', error);
+      res.status(500).json({ message: 'Error creating user' });
+    }
+  });
+  
   // Application API endpoints
   app.get('/api/applications', async (req, res) => {
     try {
