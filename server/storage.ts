@@ -5,6 +5,8 @@ import {
   dataSources, type DataSource, type InsertDataSource,
   formSubmissions, type FormSubmission, type InsertFormSubmission
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 // Storage interface
 export interface IStorage {
@@ -268,4 +270,169 @@ export class MemStorage implements IStorage {
   }
 }
 
+// Database storage implementation
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+  
+  // Application methods
+  async getApplications(): Promise<Application[]> {
+    return db.select().from(applications);
+  }
+  
+  async getApplication(id: number): Promise<Application | undefined> {
+    const [application] = await db.select().from(applications).where(eq(applications.id, id));
+    return application || undefined;
+  }
+  
+  async createApplication(insertApplication: InsertApplication): Promise<Application> {
+    const [application] = await db
+      .insert(applications)
+      .values(insertApplication)
+      .returning();
+    return application;
+  }
+  
+  async updateApplication(id: number, partialApplication: Partial<InsertApplication>): Promise<Application | undefined> {
+    const [updatedApplication] = await db
+      .update(applications)
+      .set(partialApplication)
+      .where(eq(applications.id, id))
+      .returning();
+    
+    return updatedApplication || undefined;
+  }
+  
+  async deleteApplication(id: number): Promise<boolean> {
+    const result = await db
+      .delete(applications)
+      .where(eq(applications.id, id));
+      
+    return !!result;
+  }
+  
+  // Form methods
+  async getForms(): Promise<Form[]> {
+    return db.select().from(forms);
+  }
+  
+  async getFormsByApplication(applicationId: number): Promise<Form[]> {
+    return db
+      .select()
+      .from(forms)
+      .where(eq(forms.applicationId, applicationId));
+  }
+  
+  async getForm(id: number): Promise<Form | undefined> {
+    const [form] = await db.select().from(forms).where(eq(forms.id, id));
+    return form || undefined;
+  }
+  
+  async createForm(insertForm: InsertForm): Promise<Form> {
+    const [form] = await db
+      .insert(forms)
+      .values(insertForm)
+      .returning();
+    return form;
+  }
+  
+  async updateForm(id: number, partialForm: Partial<InsertForm>): Promise<Form | undefined> {
+    const [updatedForm] = await db
+      .update(forms)
+      .set(partialForm)
+      .where(eq(forms.id, id))
+      .returning();
+    
+    return updatedForm || undefined;
+  }
+  
+  async deleteForm(id: number): Promise<boolean> {
+    const result = await db
+      .delete(forms)
+      .where(eq(forms.id, id));
+      
+    return !!result;
+  }
+  
+  async publishForm(id: number): Promise<Form | undefined> {
+    const [publishedForm] = await db
+      .update(forms)
+      .set({ isPublished: true })
+      .where(eq(forms.id, id))
+      .returning();
+    
+    return publishedForm || undefined;
+  }
+  
+  // Data Source methods
+  async getDataSources(): Promise<DataSource[]> {
+    return db.select().from(dataSources);
+  }
+  
+  async getDataSource(id: number): Promise<DataSource | undefined> {
+    const [dataSource] = await db.select().from(dataSources).where(eq(dataSources.id, id));
+    return dataSource || undefined;
+  }
+  
+  async createDataSource(insertDataSource: InsertDataSource): Promise<DataSource> {
+    const [dataSource] = await db
+      .insert(dataSources)
+      .values(insertDataSource)
+      .returning();
+    return dataSource;
+  }
+  
+  async updateDataSource(id: number, partialDataSource: Partial<InsertDataSource>): Promise<DataSource | undefined> {
+    const [updatedDataSource] = await db
+      .update(dataSources)
+      .set(partialDataSource)
+      .where(eq(dataSources.id, id))
+      .returning();
+    
+    return updatedDataSource || undefined;
+  }
+  
+  async deleteDataSource(id: number): Promise<boolean> {
+    const result = await db
+      .delete(dataSources)
+      .where(eq(dataSources.id, id));
+      
+    return !!result;
+  }
+  
+  // Form Submission methods
+  async getFormSubmissions(formId: number): Promise<FormSubmission[]> {
+    return db
+      .select()
+      .from(formSubmissions)
+      .where(eq(formSubmissions.formId, formId));
+  }
+  
+  async createFormSubmission(insertSubmission: InsertFormSubmission): Promise<FormSubmission> {
+    const [submission] = await db
+      .insert(formSubmissions)
+      .values(insertSubmission)
+      .returning();
+    return submission;
+  }
+}
+
+// Use in-memory storage for development until database is properly set up
 export const storage = new MemStorage();
+// Uncomment the line below to use database storage instead
+// export const storage = new DatabaseStorage();
