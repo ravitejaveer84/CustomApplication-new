@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FormElement } from "@shared/schema";
 import { 
   Form, 
@@ -74,6 +74,17 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
     refetchOnWindowFocus: false
   });
   
+  const handleFieldChange = useCallback((fieldName: string, value: any) => {
+    if (!selectedElement) return;
+    
+    form.setValue(fieldName as any, value);
+    
+    // Only update parent component when we have a complete change
+    // This could be throttled or debounced in a real implementation
+    const updatedValues = form.getValues();
+    onElementUpdate({ ...selectedElement, ...updatedValues });
+  }, [selectedElement, form, onElementUpdate]);
+  
   // Force refresh when changing tab to data
   useEffect(() => {
     if (activeTab === "data" && dataSourceId) {
@@ -84,28 +95,31 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
   
   // Add debugging to check if we're getting data source fields
   useEffect(() => {
-    if (dataSourceId && selectedDataSource) {
+    if (dataSourceId && selectedDataSource && selectedElement) {
       console.log("Selected data source:", selectedDataSource);
       console.log("Fields:", selectedDataSource.fields);
+      
+      // If we have fields and the current field mapping is empty, suggest the first selected field
+      if (selectedDataSource.fields?.length > 0 && !selectedElement.dataSource?.field) {
+        const selectedFields = selectedDataSource.fields.filter(f => f.selected);
+        if (selectedFields.length > 0) {
+          // Suggest the first selected field
+          const suggestedField = selectedFields[0].name;
+          handleFieldChange("dataSource", {
+            ...selectedElement.dataSource,
+            field: suggestedField
+          });
+          console.log("Auto-selected field:", suggestedField);
+        }
+      }
     }
-  }, [dataSourceId, selectedDataSource]);
+  }, [dataSourceId, selectedDataSource, selectedElement, handleFieldChange]);
   
   useEffect(() => {
     if (selectedElement) {
       form.reset(selectedElement);
     }
   }, [selectedElement, form]);
-  
-  const handleFieldChange = (fieldName: string, value: any) => {
-    if (!selectedElement) return;
-    
-    form.setValue(fieldName as any, value);
-    
-    // Only update parent component when we have a complete change
-    // This could be throttled or debounced in a real implementation
-    const updatedValues = form.getValues();
-    onElementUpdate({ ...selectedElement, ...updatedValues });
-  };
   
   if (!selectedElement) {
     return (
@@ -478,7 +492,13 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
                 ) : (
                   selectedDataSource.fields.map((field: { name: string; type: string; selected: boolean }) => (
                     <SelectItem key={field.name} value={field.name}>
-                      {field.name} ({field.type})
+                      <div className="flex items-center">
+                        <span>{field.name}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">({field.type})</span>
+                        {field.selected && (
+                          <span className="ml-auto text-xs text-primary">✓ Selected</span>
+                        )}
+                      </div>
                     </SelectItem>
                   ))
                 )}
