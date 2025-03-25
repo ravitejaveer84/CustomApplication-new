@@ -21,6 +21,15 @@ interface PropertiesPanelProps {
   onElementUpdate: (updatedElement: FormElement) => void;
 }
 
+interface DataSource {
+  id: number;
+  name: string;
+  type: string;
+  config: string;
+  fields: Array<{ name: string; type: string; selected: boolean }>;
+  selectedFields: string[];
+}
+
 export function PropertiesPanel({ selectedElement, onElementUpdate }: PropertiesPanelProps) {
   const [activeTab, setActiveTab] = useState<"basic" | "validation" | "data" | "advanced">("basic");
   
@@ -47,13 +56,13 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
   });
   
   // Fetch data sources
-  const { data: dataSources, isLoading: loadingDataSources } = useQuery({
+  const { data: dataSources = [], isLoading: loadingDataSources } = useQuery<DataSource[]>({
     queryKey: ["/api/datasources"],
     enabled: activeTab === "data"
   });
   
   // Fetch data source fields if a data source is selected
-  const { data: selectedDataSource, isLoading: loadingDataSource } = useQuery({
+  const { data: selectedDataSource, isLoading: loadingDataSource } = useQuery<DataSource>({
     queryKey: ["/api/datasources", selectedElement?.dataSource?.id],
     enabled: !!selectedElement?.dataSource?.id && activeTab === "data"
   });
@@ -216,7 +225,7 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
         <div className="mt-4">
           <FormLabel>Options</FormLabel>
           <div className="space-y-2 mt-2">
-            {selectedElement.options?.map((option, index) => (
+            {selectedElement.options?.map((option: { label: string; value: string }, index: number) => (
               <div key={index} className="flex gap-2">
                 <Input 
                   value={option.label}
@@ -377,7 +386,7 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
                 ) : !dataSources || dataSources.length === 0 ? (
                   <SelectItem value="no-data-sources" disabled>No data sources</SelectItem>
                 ) : (
-                  dataSources.map((source: any) => (
+                  dataSources.map((source: DataSource) => (
                     <SelectItem key={source.id} value={source.id.toString()}>
                       {source.name}
                     </SelectItem>
@@ -415,7 +424,7 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
                 ) : !selectedDataSource || !selectedDataSource.fields || selectedDataSource.fields.length === 0 ? (
                   <SelectItem value="no-fields" disabled>No fields available</SelectItem>
                 ) : (
-                  Array.isArray(selectedDataSource.fields) && selectedDataSource.fields.map((field: any) => (
+                  Array.isArray(selectedDataSource?.fields) && selectedDataSource.fields.map((field: { name: string; type: string; selected: boolean }) => (
                     <SelectItem key={field.name} value={field.name}>
                       {field.name} ({field.type})
                     </SelectItem>

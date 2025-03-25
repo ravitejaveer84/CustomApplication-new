@@ -43,11 +43,13 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
 
   const form = useForm<DataSourceFormValues>();
   
-  // Effect to generate sample fields when connection is tested successfully
+  // State to store connection test response
+  const [connectionTestResponse, setConnectionTestResponse] = useState<any>(null);
+  
+  // Effect to generate fields when connection is tested successfully
   useEffect(() => {
-    if (isConnectionTested) {
-      // In a real application, these would come from the backend
-      // For now, generate sample fields based on the data source type
+    if (isConnectionTested && connectionTestResponse) {
+      // Process fields from the connection test response
       const type = form.getValues('type');
       
       let sampleFields: DataField[] = [];
@@ -184,6 +186,39 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
       const result = await response.json();
       if (result.success) {
         setIsConnectionTested(true);
+        setConnectionTestResponse(result);
+        
+        // Extract fields from the response based on data source type
+        let extractedFields: DataField[] = [];
+        if (data.type === 'database') {
+          // For database, we need to handle the table selection first
+          // For now, just use the first table if available
+          const tables = result.tables || [];
+          if (tables.length > 0) {
+            const firstTable = tables[0];
+            const tableFields = result.fields[firstTable] || [];
+            extractedFields = tableFields.map((field: any) => ({
+              name: field.name,
+              type: field.type,
+              selected: field.selected || false
+            }));
+          }
+        } else if (data.type === 'sharepoint' || data.type === 'excel') {
+          // For SharePoint and Excel, the fields are directly in the response
+          extractedFields = (result.fields || []).map((field: any) => ({
+            name: field.name,
+            type: field.type,
+            selected: field.selected || false
+          }));
+        }
+        
+        setFields(extractedFields);
+        
+        // Generate preview data based on the fields
+        if (extractedFields.length > 0) {
+          generateSamplePreviewData(extractedFields);
+        }
+        
         toast({
           title: "Success",
           description: "Connection test successful!"
@@ -268,13 +303,10 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
         };
       }
 
-      // Get the selected fields
-      const selectedFields = fields
+      // Get the selected field names for storage
+      const selectedFieldNames = fields
         .filter(field => field.selected)
-        .map(field => ({
-          name: field.name,
-          type: field.type
-        }));
+        .map(field => field.name);
 
       const response = await fetch('/api/datasources', {
         method: 'POST',
@@ -282,8 +314,9 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
         body: JSON.stringify({
           name: data.name,
           type: data.type,
-          config,
-          fields: selectedFields
+          config: JSON.stringify(config), // Convert config to string for storage
+          fields: fields,                 // Store all fields
+          selectedFields: selectedFieldNames // Store just the names of selected fields
         })
       });
 
