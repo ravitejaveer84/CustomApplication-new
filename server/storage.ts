@@ -70,8 +70,24 @@ export class MemStorage implements IStorage {
     this.dataSourceCurrentId = 1;
     this.formSubmissionCurrentId = 1;
     
-    // Initialize with default applications
+    // Initialize with default users and applications
+    this.initializeDefaultUsers();
     this.initializeDefaultApplications();
+  }
+  
+  private async initializeDefaultUsers() {
+    // Create admin user with password 'admin123'
+    // In real implementation, we'd use bcrypt to hash the password, but for simplicity we'll use the hashed version
+    const hashedPassword = '$2b$10$3euPzG8A0oNqLG/xCj.EROsKQjMB2iCPIT2sS/CnHkDNK5nLG4Ig6'; // 'admin123' hashed
+    await this.createUser({
+      username: "admin",
+      password: hashedPassword,
+      role: "admin",
+      email: "admin@example.com",
+      name: "Administrator"
+    });
+    
+    console.log('Default users initialized in memory storage');
   }
   
   private async initializeDefaultApplications() {
@@ -464,7 +480,7 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Use database storage 
-export const storage = new DatabaseStorage();
-// Uncomment the line below to use in-memory storage instead
-// export const storage = new MemStorage();
+// Use memory storage for easier testing
+export const storage = new MemStorage();
+// Uncomment the line below to use database storage instead
+// export const storage = new DatabaseStorage();
