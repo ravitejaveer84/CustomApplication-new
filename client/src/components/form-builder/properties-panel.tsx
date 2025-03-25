@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 interface PropertiesPanelProps {
@@ -63,17 +63,24 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
   
   // Fetch data source fields if a data source is selected
   const dataSourceId = selectedElement?.dataSource?.id;
-  const { data: selectedDataSource, isLoading: loadingDataSource } = useQuery<DataSource>({
+  const { 
+    data: selectedDataSource, 
+    isLoading: loadingDataSource,
+    refetch: refetchDataSource
+  } = useQuery<DataSource>({
     queryKey: ["/api/datasources", dataSourceId],
-    enabled: !!dataSourceId && activeTab === "data"
+    enabled: !!dataSourceId,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false
   });
   
   // Force refresh when changing tab to data
   useEffect(() => {
     if (activeTab === "data" && dataSourceId) {
       console.log("Refreshing data source fields for ID:", dataSourceId);
+      refetchDataSource();
     }
-  }, [activeTab, dataSourceId]);
+  }, [activeTab, dataSourceId, refetchDataSource]);
   
   // Add debugging to check if we're getting data source fields
   useEffect(() => {
@@ -431,7 +438,21 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
         name="dataSource.field"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Map to Field</FormLabel>
+            <div className="flex justify-between items-center mb-1">
+              <FormLabel>Map to Field</FormLabel>
+              {selectedElement.dataSource?.id && (
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => refetchDataSource()}
+                  className="h-6 px-2"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  <span className="text-xs">Refresh Fields</span>
+                </Button>
+              )}
+            </div>
             <Select 
               value={field.value} 
               onValueChange={(value) => {
@@ -455,12 +476,13 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
                 ) : !selectedDataSource || !selectedDataSource.fields || selectedDataSource.fields.length === 0 ? (
                   <SelectItem value="no-fields" disabled>No fields available</SelectItem>
                 ) : (
-                  Array.isArray(selectedDataSource?.fields) && selectedDataSource.fields.map((field: { name: string; type: string; selected: boolean }) => (
+                  selectedDataSource.fields.map((field: { name: string; type: string; selected: boolean }) => (
                     <SelectItem key={field.name} value={field.name}>
                       {field.name} ({field.type})
                     </SelectItem>
                   ))
                 )}
+                {/* No debug logging in render method */}
               </SelectContent>
             </Select>
           </FormItem>
