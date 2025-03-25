@@ -35,6 +35,14 @@ export function FormElementsList({ onDragStart }: FormElementsListProps) {
       default: return <Type className="h-4 w-4 text-gray-500 mr-2" />;
     }
   };
+  
+  // Handle the drag start event
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, elementType: string) => {
+    // Set the data transfer with the element type
+    e.dataTransfer.setData('text/plain', elementType);
+    // Call the parent component's drag start handler
+    onDragStart(elementType);
+  };
 
   return (
     <div className="space-y-2">
@@ -47,7 +55,7 @@ export function FormElementsList({ onDragStart }: FormElementsListProps) {
             className="bg-white border border-gray-300 rounded p-2 mb-2 cursor-move hover:bg-gray-50 flex items-center"
             draggable={true}
             data-element-type={element.type}
-            onDragStart={() => onDragStart(element.type)}
+            onDragStart={(e) => handleDragStart(e, element.type)}
           >
             {getIcon(element.icon)}
             <span>{element.label}</span>
@@ -64,7 +72,7 @@ export function FormElementsList({ onDragStart }: FormElementsListProps) {
             className="bg-white border border-gray-300 rounded p-2 mb-2 cursor-move hover:bg-gray-50 flex items-center"
             draggable={true}
             data-element-type={element.type}
-            onDragStart={() => onDragStart(element.type)}
+            onDragStart={(e) => handleDragStart(e, element.type)}
           >
             {getIcon(element.icon)}
             <span>{element.label}</span>
@@ -81,7 +89,7 @@ export function FormElementsList({ onDragStart }: FormElementsListProps) {
             className="bg-white border border-gray-300 rounded p-2 mb-2 cursor-move hover:bg-gray-50 flex items-center"
             draggable={true}
             data-element-type={element.type}
-            onDragStart={() => onDragStart(element.type)}
+            onDragStart={(e) => handleDragStart(e, element.type)}
           >
             {getIcon(element.icon)}
             <span>{element.label}</span>

@@ -82,10 +82,10 @@ export default function FormBuilder() {
   });
 
   const handleDragStart = (elementType: string) => {
-    // Set the data transfer data to the element type
-    if (typeof window.dataTransfer !== 'undefined') {
-      window.dataTransfer.setData('text/plain', elementType);
-    }
+    // The actual dataTransfer is set in the FormElementsList component
+    // We don't need to do anything here as the element component sets the data
+    // when the onDragStart event is triggered
+    console.log('Element dragged:', elementType);
   };
 
   const handleElementSelect = (element: FormElement) => {
