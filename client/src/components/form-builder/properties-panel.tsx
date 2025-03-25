@@ -68,6 +68,21 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
     enabled: !!dataSourceId && activeTab === "data"
   });
   
+  // Force refresh when changing tab to data
+  useEffect(() => {
+    if (activeTab === "data" && dataSourceId) {
+      console.log("Refreshing data source fields for ID:", dataSourceId);
+    }
+  }, [activeTab, dataSourceId]);
+  
+  // Add debugging to check if we're getting data source fields
+  useEffect(() => {
+    if (dataSourceId && selectedDataSource) {
+      console.log("Selected data source:", selectedDataSource);
+      console.log("Fields:", selectedDataSource.fields);
+    }
+  }, [dataSourceId, selectedDataSource]);
+  
   useEffect(() => {
     if (selectedElement) {
       form.reset(selectedElement);
@@ -375,11 +390,18 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
               value={field.value} 
               onValueChange={(value) => {
                 field.onChange(value);
-                handleFieldChange("dataSource.id", value);
+                const numericValue = parseInt(value);
+                // Create proper structure for dataSource
+                const dataSource = {
+                  ...selectedElement.dataSource,
+                  id: numericValue
+                };
+                handleFieldChange("dataSource", dataSource);
                 // Reset the field mapping when data source changes
                 handleFieldChange("dataSource.field", "");
                 // Change to data tab to show the updated fields
                 setTimeout(() => setActiveTab("data"), 100);
+                console.log("Changed data source to:", numericValue);
               }}
             >
               <SelectTrigger>
@@ -414,7 +436,11 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
               value={field.value} 
               onValueChange={(value) => {
                 field.onChange(value);
-                handleFieldChange("dataSource.field", value);
+                const dataSource = {
+                  ...selectedElement.dataSource,
+                  field: value
+                };
+                handleFieldChange("dataSource", dataSource);
               }}
               disabled={!selectedElement.dataSource?.id}
             >
