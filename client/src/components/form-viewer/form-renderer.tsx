@@ -207,17 +207,30 @@ export function FormRenderer({
         
         // Fetch dropdown options from data source if configured
         useEffect(() => {
-          // Get data source ID from either format (direct or nested)
-          const dataSourceId = element.dataSourceId || element.dataSource?.id;
-          // Get display/value fields
-          const displayField = element.displayField || element.dataSource?.field;
-          const valueField = element.valueField;
+          // Get data source ID from the appropriate property based on optionsSource
+          let dataSourceId = null;
+          let displayField = null;
+          let valueField = null;
+          
+          // If element uses new format with optionsSource
+          if (element.optionsSource === "dataSource") {
+            dataSourceId = element.dataSourceId;
+            displayField = element.displayField;
+            valueField = element.valueField;
+          } else {
+            // Using old format
+            dataSourceId = element.dataSource?.id;
+            displayField = element.dataSource?.field;
+            valueField = element.dataSource?.field; // Use same field as value field for backwards compatibility
+          }
           
           console.log("Dropdown config:", {
             element: element.name,
             dataSourceId,
             displayField,
-            valueField
+            valueField,
+            optionsSource: element.optionsSource,
+            options: element.options || []
           });
           
           if (dataSourceId && (displayField || valueField)) {
@@ -296,11 +309,21 @@ export function FormRenderer({
             
             fetchDropdownData();
           }
-        }, [element.dataSourceId, element.dataSource?.id, element.displayField, element.dataSource?.field, element.valueField]);
+        }, [element.dataSourceId, element.dataSource?.id, element.displayField, element.dataSource?.field, element.valueField, element.optionsSource]);
         
-        // Determine which options to display
-        const dataSourceId = element.dataSourceId || element.dataSource?.id;
-        const displayOptions = dataSourceId && dropdownOptions.length > 0 
+        // Determine which options to display based on the configuration approach
+        let dataSourceId = null;
+        
+        // Check which approach is being used
+        if (element.optionsSource === "dataSource") {
+          dataSourceId = element.dataSourceId;
+        } else {
+          dataSourceId = element.dataSource?.id;
+        }
+        
+        // If we have data source options and they've loaded, use them
+        // Otherwise fall back to manually defined options
+        const displayOptions = (dataSourceId && dropdownOptions.length > 0)
           ? dropdownOptions 
           : element.options || [];
         
