@@ -93,7 +93,7 @@ export default function Users() {
     mutationFn: async (user: UserFormValues) => {
       return apiRequest("/api/users", {
         method: "POST",
-        body: JSON.stringify(user),
+        data: user,
       });
     },
     onSuccess: () => {

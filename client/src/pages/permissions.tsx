@@ -27,14 +27,14 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { Application } from "@shared/schema";
+import type { Application, User } from "@shared/schema";
 
 export default function Permissions() {
   const { toast } = useToast();
   const [selectedAppId, setSelectedAppId] = useState<number | null>(null);
   
   // Fetch users and applications
-  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ['/api/users'],
     enabled: true,
   });
@@ -101,7 +101,7 @@ export default function Permissions() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users.map((user: any) => {
+                      {Array.isArray(users) && users.map((user) => {
                         // In a real application, we would check if user has access to this app
                         const hasAccess = user.role === 'admin' || 
                           (selectedAppId && applications.find(a => 

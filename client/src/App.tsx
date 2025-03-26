@@ -13,6 +13,8 @@ import ApplicationDetail from "@/pages/application-detail";
 import NewApplication from "@/pages/new-application";
 import Login from "@/pages/login";
 import Unauthorized from "@/pages/unauthorized";
+import Users from "@/pages/users";
+import Permissions from "@/pages/permissions";
 import { AuthProvider, RequireAuth, RequireAdmin } from "@/hooks/use-auth";
 
 function Router() {
@@ -82,6 +84,23 @@ function Router() {
         {(params) => (
           <RequireAdmin>
             <DataSources />
+          </RequireAdmin>
+        )}
+      </Route>
+      
+      {/* Admin routes for user management */}
+      <Route path="/users">
+        {(params) => (
+          <RequireAdmin>
+            <Users />
+          </RequireAdmin>
+        )}
+      </Route>
+      
+      <Route path="/permissions">
+        {(params) => (
+          <RequireAdmin>
+            <Permissions />
           </RequireAdmin>
         )}
       </Route>
