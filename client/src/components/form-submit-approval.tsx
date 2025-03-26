@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApprovalRequestDialog } from "@/components/approval-request-dialog";
 import { FormRenderer } from "@/components/form-viewer";
-import { FormElement } from "@shared/schema";
+import { FormElement, Form } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 
@@ -24,27 +24,40 @@ export function FormSubmitApproval({ formId, formData, onSuccess }: FormSubmitAp
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
   
+  // Define the response type with elements properly typed
+  interface FormResponse {
+    id: number;
+    name: string;
+    description?: string;
+    applicationId?: number;
+    elements: FormElement[];
+    dataSourceId?: string;
+    isPublished: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }
+  
   // Fetch form definition including any approval buttons
-  const { data: formDefinition } = useQuery({
+  const { data: formDefinition } = useQuery<FormResponse>({
     queryKey: [`/api/forms/${formId}`],
     enabled: !!formId
   });
   
   // Check if form has any approval buttons defined
-  const hasApprovalButtons = formDefinition && formDefinition.elements ? 
-    formDefinition.elements.some((element: FormElement) => 
-      element.type === "button" && 
-      element.buttonAction?.type && 
-      ["approve", "reject", "request-approval"].includes(element.buttonAction.type)
-    ) : false;
+  const formElements = formDefinition?.elements || [];
+  
+  const hasApprovalButtons = formElements.some((element: FormElement) => 
+    element.type === "button" && 
+    element.buttonAction?.type && 
+    ["approve", "reject", "request-approval"].includes(element.buttonAction.type)
+  );
   
   // Extract only the approval buttons for rendering
-  const approvalButtons = formDefinition && formDefinition.elements ? 
-    formDefinition.elements.filter((element: FormElement) => 
-      element.type === "button" && 
-      element.buttonAction?.type && 
-      ["approve", "reject", "request-approval"].includes(element.buttonAction.type)
-    ) : [];
+  const approvalButtons = formElements.filter((element: FormElement) => 
+    element.type === "button" && 
+    element.buttonAction?.type && 
+    ["approve", "reject", "request-approval"].includes(element.buttonAction.type)
+  );
   
   // Traditional form submission (without custom approval)
   const submitFormMutation = useMutation({
@@ -114,7 +127,7 @@ export function FormSubmitApproval({ formId, formData, onSuccess }: FormSubmitAp
               ))}
               
               {/* Default submit button if no request-approval buttons exist */}
-              {!approvalButtons.some(b => b.buttonAction?.type === "request-approval") && (
+              {!approvalButtons.some((b: FormElement) => b.buttonAction?.type === "request-approval") && (
                 <Button
                   onClick={handleSubmit}
                   disabled={submitFormMutation.isPending}
