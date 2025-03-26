@@ -206,19 +206,24 @@ export function FormRenderer({
         
         // Fetch dropdown options from data source if configured
         useEffect(() => {
-          if (element.dataSource?.id && element.dataSource?.field) {
+          if (element.dataSourceId && (element.displayField || element.valueField)) {
             setIsLoadingOptions(true);
             
             const fetchDropdownData = async () => {
               try {
+                console.log(`Fetching dropdown data from source ID: ${element.dataSourceId}, display field: ${element.displayField}, value field: ${element.valueField}`);
+                
                 const response = await apiRequest<any[]>(
-                  `/api/datasources/${element.dataSource!.id}/data`
+                  `/api/datasources/${element.dataSourceId}/data`
                 );
                 
                 if (response && Array.isArray(response)) {
+                  // Use displayField if available, otherwise use valueField
+                  const fieldToUse = element.displayField || element.valueField;
+                  
                   // Extract unique values from the specified field
                   const fieldValues = response
-                    .map(item => item[element.dataSource!.field])
+                    .map(item => item[fieldToUse])
                     .filter(value => value !== null && value !== undefined);
                   
                   // Get unique values without using Set directly
@@ -241,14 +246,32 @@ export function FormRenderer({
                     });
                   }
                   
-                  // Format as options for dropdown
-                  const options = uniqueValues.map(value => ({
-                    value: String(value),
-                    label: String(value)
-                  }));
+                  // If both displayField and valueField are provided, create options with both
+                  let options;
+                  if (element.displayField && element.valueField && element.displayField !== element.valueField) {
+                    // Create mapping of unique display/value pairs
+                    const optionsMap = new Map();
+                    for (const item of response) {
+                      const display = item[element.displayField];
+                      const value = item[element.valueField];
+                      if (display !== undefined && value !== undefined) {
+                        optionsMap.set(String(value), {
+                          value: String(value),
+                          label: String(display)
+                        });
+                      }
+                    }
+                    options = Array.from(optionsMap.values());
+                  } else {
+                    // Use same field for both value and label
+                    options = uniqueValues.map(value => ({
+                      value: String(value),
+                      label: String(value)
+                    }));
+                  }
                   
                   setDropdownOptions(options);
-                  console.log(`Loaded ${options.length} unique options for dropdown`);
+                  console.log(`Loaded ${options.length} unique options for dropdown from ${fieldToUse}`);
                 }
               } catch (err) {
                 console.error("Error fetching dropdown options:", err);
@@ -259,10 +282,10 @@ export function FormRenderer({
             
             fetchDropdownData();
           }
-        }, [element.dataSource?.id, element.dataSource?.field]);
+        }, [element.dataSourceId, element.displayField, element.valueField]);
         
         // Determine which options to display
-        const displayOptions = element.dataSource?.id && dropdownOptions.length > 0 
+        const displayOptions = element.dataSourceId && dropdownOptions.length > 0 
           ? dropdownOptions 
           : element.options || [];
         
