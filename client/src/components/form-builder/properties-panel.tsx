@@ -1103,6 +1103,18 @@ export function PropertiesPanel({
               Actions
             </button>
           )}
+          {(selectedElement.type === "datatable" || selectedElement.type === "gallery") && (
+            <button
+              className={`px-3 py-2 text-sm font-medium ${
+                activeTab === "columns"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("columns")}
+            >
+              Columns
+            </button>
+          )}
           <button
             className={`px-3 py-2 text-sm font-medium ${
               activeTab === "advanced"
@@ -1137,6 +1149,7 @@ export function PropertiesPanel({
                 formElements={form.getValues().elements || []}
               />
             )}
+            {activeTab === "columns" && (selectedElement.type === "datatable" || selectedElement.type === "gallery") && renderColumnsProperties()}
             {activeTab === "advanced" && renderAdvancedProperties()}
           </form>
         </Form>
