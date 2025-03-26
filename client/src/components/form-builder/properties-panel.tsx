@@ -511,130 +511,79 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
   );
   
   const renderDataMappingProperties = () => {
-    // Ultimate simplified approach - direct field selector
-    const fields = activeSourceFields.map(field => field.name);
-    
-    const selectDataSource = async (id: number) => {
+    // Super simple approach focusing on just the essential functionality
+    const handleDataSourceChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const sourceId = parseInt(event.target.value);
+      if (isNaN(sourceId)) return;
+      
       try {
-        const response = await fetch(`/api/datasources/${id}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch data source: ${response.statusText}`);
-        }
+        const response = await fetch(`/api/datasources/${sourceId}`);
+        if (!response.ok) throw new Error("Failed to fetch data source");
         
         const data = await response.json();
-        console.log("Fetched data source:", data);
+        console.log("Data source selected:", data);
         
-        // Update the element
+        // Update state
+        setActiveDataSource(data);
+        setActiveSourceFields(data.fields || []);
+        
+        // Update the element directly
         onElementUpdate({
           ...selectedElement,
-          dataSource: {
-            id: id,
-            field: ""
-          }
+          dataSource: { id: sourceId, field: "" }
         });
-        
-        // Update fields display
-        setActiveDataSource(data);
-        const fieldList = Array.isArray(data.fields) ? data.fields : [];
-        setActiveSourceFields(fieldList);
       } catch (error) {
-        console.error("Error fetching data source:", error);
+        console.error("Error loading data source:", error);
       }
     };
     
-    const selectField = (fieldName: string) => {
-      // Update element directly
+    const handleFieldChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const fieldName = event.target.value;
+      console.log("Field selected:", fieldName);
+      
+      // Update the element directly
       onElementUpdate({
         ...selectedElement,
-        dataSource: {
+        dataSource: { 
           id: selectedElement.dataSource?.id || 0,
-          field: fieldName
+          field: fieldName 
         }
       });
     };
-
-    // Manually create HTML fields to ensure they appear
+    
     return (
       <div className="space-y-4">
         <div>
-          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2 block">
-            Data Source
-          </label>
-          
-          <Select
-            value={selectedElement.dataSource?.id?.toString() || ""}
-            onValueChange={(value) => {
-              if (value) {
-                selectDataSource(parseInt(value));
-              }
-            }}
+          <label className="block mb-2 text-sm font-medium">Data Source</label>
+          <select 
+            className="w-full p-2 border rounded bg-white"
+            value={selectedElement.dataSource?.id || ""}
+            onChange={handleDataSourceChange}
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select data source" />
-            </SelectTrigger>
-            <SelectContent>
-              {loadingDataSources ? (
-                <SelectItem value="" disabled>Loading data sources...</SelectItem>
-              ) : !dataSources || dataSources.length === 0 ? (
-                <SelectItem value="" disabled>No data sources available</SelectItem>
-              ) : (
-                dataSources.map((source) => (
-                  <SelectItem key={source.id} value={source.id.toString()}>
-                    {source.name} ({source.type})
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+            <option value="">Select a data source</option>
+            {dataSources && dataSources.map(source => (
+              <option key={source.id} value={source.id}>
+                {source.name} ({source.type})
+              </option>
+            ))}
+          </select>
         </div>
-
+        
         <div>
-          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2 block">
-            Map to Field
-          </label>
-          
-          <div className="bg-gray-100 p-2 mb-2 rounded text-xs">
-            <div>Current data source: {selectedElement.dataSource?.id ? `ID: ${selectedElement.dataSource.id}` : "None"}</div>
-            <div>Available fields: {activeSourceFields.length}</div>
-            <div>Selected field: {selectedElement.dataSource?.field || "None"}</div>
-          </div>
-          
-          {selectedElement.dataSource?.id ? (
-            <Select
-              value={selectedElement.dataSource?.field || ""}
-              onValueChange={(value) => selectField(value)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select field" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeSourceFields.length === 0 ? (
-                  <SelectItem value="" disabled>No fields available</SelectItem>
-                ) : (
-                  activeSourceFields.map((field: { name: string; type: string }) => (
-                    <SelectItem key={field.name} value={field.name}>
-                      {field.name} ({field.type})
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          ) : (
-            <div className="text-sm text-gray-500">Please select a data source first</div>
-          )}
-          
-          {selectedElement.dataSource?.id && (
-            <Button 
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => refetchDataSource()}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh Fields
-            </Button>
-          )}
+          <label className="block mb-2 text-sm font-medium">Map to Field</label>
+          <select
+            className="w-full p-2 border rounded bg-white"
+            value={selectedElement.dataSource?.field || ""}
+            onChange={handleFieldChange}
+            disabled={!selectedElement.dataSource?.id}
+          >
+            <option value="">Select a field</option>
+            {activeSourceFields.map(field => (
+              <option key={field.name} value={field.name}>
+                {field.name}
+              </option>
+            ))}
+          </select>
         </div>
         
         {/* Default Value Field */}
