@@ -407,8 +407,182 @@ export function FormCanvas({
           </div>
         );
       
+      // Button element
+      case "button":
+        return (
+          <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
+            <div className="absolute top-2 right-2 flex space-x-1">
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <MoveVertical className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <Cog className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteElement(element.id);
+              }}>
+                <Trash className="h-3 w-3 text-red-500" />
+              </Button>
+            </div>
+            <div className="flex justify-center mt-2">
+              <Button
+                variant={element.variant as any || "default"}
+                size={element.size as any || "default"}
+              >
+                {element.label || "Button"}
+              </Button>
+            </div>
+            {element.helpText && <p className="text-xs text-gray-500 mt-1">{element.helpText}</p>}
+          </div>
+        );
+        
+      // Chart element
+      case "chart":
+        return (
+          <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
+            <div className="absolute top-2 right-2 flex space-x-1">
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <MoveVertical className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <Cog className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteElement(element.id);
+              }}>
+                <Trash className="h-3 w-3 text-red-500" />
+              </Button>
+            </div>
+            <div className="border border-gray-300 rounded p-4 bg-gray-50 h-[300px] flex items-center justify-center">
+              <div className="text-center text-gray-500">
+                <p className="font-medium mb-1">{element.label || "Chart"}</p>
+                <p className="text-sm">({element.chartType || "bar"} chart)</p>
+                <p className="text-xs mt-2">Configure data source in properties panel</p>
+              </div>
+            </div>
+          </div>
+        );
+      
+      // File Upload
+      case "file":
+        return (
+          <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
+            <div className="absolute top-2 right-2 flex space-x-1">
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <MoveVertical className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <Cog className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteElement(element.id);
+              }}>
+                <Trash className="h-3 w-3 text-red-500" />
+              </Button>
+            </div>
+            <label className="block text-sm font-medium mb-1">
+              {element.label} {element.required && <span className="text-red-500">*</span>}
+            </label>
+            <div className="border-2 border-dashed border-gray-300 rounded p-4 text-center">
+              <p className="text-sm text-gray-500">Drag and drop files here or click to browse</p>
+              <p className="text-xs text-gray-400 mt-1">Accepted types: {element.acceptedFileTypes || ".pdf,.doc,.docx"}</p>
+            </div>
+            {element.helpText && <p className="text-xs text-gray-500 mt-1">{element.helpText}</p>}
+          </div>
+        );
+        
+      // Email field
+      case "email":
+        return (
+          <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
+            <div className="absolute top-2 right-2 flex space-x-1">
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <MoveVertical className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <Cog className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteElement(element.id);
+              }}>
+                <Trash className="h-3 w-3 text-red-500" />
+              </Button>
+            </div>
+            <label className="block text-sm font-medium mb-1">
+              {element.label} {element.required && <span className="text-red-500">*</span>}
+            </label>
+            <input 
+              type="email" 
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-primary" 
+              placeholder={element.placeholder || "name@example.com"} 
+              readOnly 
+            />
+            {element.helpText && <p className="text-xs text-gray-500 mt-1">{element.helpText}</p>}
+          </div>
+        );
+        
+      // Password field
+      case "password":
+        return (
+          <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
+            <div className="absolute top-2 right-2 flex space-x-1">
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <MoveVertical className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <Cog className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteElement(element.id);
+              }}>
+                <Trash className="h-3 w-3 text-red-500" />
+              </Button>
+            </div>
+            <label className="block text-sm font-medium mb-1">
+              {element.label} {element.required && <span className="text-red-500">*</span>}
+            </label>
+            <input 
+              type="password" 
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-primary" 
+              placeholder={element.placeholder || "••••••••"} 
+              readOnly 
+            />
+            {element.helpText && <p className="text-xs text-gray-500 mt-1">{element.helpText}</p>}
+          </div>
+        );
+        
+      // Handle all other types with a default placeholder
       default:
-        return <div>Unknown element type: {element.type}</div>;
+        return (
+          <div className={`form-field-container relative group ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={() => onElementSelect(element)}>
+            <div className="absolute top-2 right-2 flex space-x-1">
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <MoveVertical className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5">
+                <Cog className="h-3 w-3 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteElement(element.id);
+              }}>
+                <Trash className="h-3 w-3 text-red-500" />
+              </Button>
+            </div>
+            <label className="block text-sm font-medium mb-1">
+              {element.label} ({element.type}) {element.required && <span className="text-red-500">*</span>}
+            </label>
+            <div className="w-full p-4 border border-gray-300 rounded bg-gray-50 text-gray-500 text-center">
+              {element.type.charAt(0).toUpperCase() + element.type.slice(1)} Element
+            </div>
+            {element.helpText && <p className="text-xs text-gray-500 mt-1">{element.helpText}</p>}
+          </div>
+        );
     }
   };
 
