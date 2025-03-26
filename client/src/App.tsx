@@ -15,6 +15,7 @@ import Login from "@/pages/login";
 import Unauthorized from "@/pages/unauthorized";
 import Users from "@/pages/users";
 import Permissions from "@/pages/permissions";
+import ApprovalRequests from "@/pages/approval-requests";
 import { AuthProvider, RequireAuth, RequireAdmin } from "@/hooks/use-auth";
 
 function Router() {
@@ -102,6 +103,15 @@ function Router() {
           <RequireAdmin>
             <Permissions />
           </RequireAdmin>
+        )}
+      </Route>
+      
+      {/* Approval workflow routes */}
+      <Route path="/approval-requests">
+        {(params) => (
+          <RequireAuth>
+            <ApprovalRequests />
+          </RequireAuth>
         )}
       </Route>
       
