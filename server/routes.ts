@@ -15,6 +15,8 @@ import pg from 'pg';
 import { compare, hash } from 'bcrypt';
 import session from 'express-session';
 import pgSession from 'connect-pg-simple';
+import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 // Session types
 declare module 'express-session' {
@@ -752,8 +754,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (type === 'excel') {
         // Handle OneDrive/SharePoint Excel file connection
         const { fileUrl } = config || {};
-        const axios = require('axios');
-        const XLSX = require('xlsx');
         
         if (!fileUrl) {
           return res.status(400).json({
