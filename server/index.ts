@@ -42,13 +42,24 @@ app.use((req, res, next) => {
   try {
     // Import and run migrations before initializing
     const { main } = await import('./migrate');
-    await main();
-    console.log('Database migrations completed');
+    try {
+      await main();
+      console.log('Database migrations completed');
+    } catch (migrateErr) {
+      // If tables already exist, that's okay - we can continue
+      if (migrateErr.message && migrateErr.message.includes('already exists')) {
+        console.log('Tables already exist, skipping migrations');
+      } else {
+        // Re-throw if it's a different error
+        throw migrateErr;
+      }
+    }
     
     // Initialize database with default data
     await initializeDatabase();
   } catch (err) {
     console.error('Error during database setup:', err);
+    // Continue execution even if there was an error to allow the app to work with existing data
   }
   
   const server = await registerRoutes(app);

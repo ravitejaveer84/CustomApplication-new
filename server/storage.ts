@@ -563,7 +563,7 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Use memory storage for easier testing
-export const storage = new MemStorage();
-// Uncomment the line below to use database storage instead
-// export const storage = new DatabaseStorage();
+// Use database storage for persistent data
+export const storage = new DatabaseStorage();
+// Comment out the line below to use database storage instead
+// export const storage = new MemStorage();

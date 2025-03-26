@@ -1032,7 +1032,7 @@ export function PropertiesPanel({
                         <SelectValue placeholder="Select field for value" />
                       </SelectTrigger>
                       <SelectContent>
-                        {selectedDataSource?.fields?.filter(f => f.selected).map((field) => (
+                        {selectedDataSource?.fields?.filter((f: DataSourceField) => f.selected).map((field) => (
                           <SelectItem key={field.name} value={field.name}>
                             {field.name}
                           </SelectItem>
