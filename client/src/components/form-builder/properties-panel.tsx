@@ -855,11 +855,29 @@ export function PropertiesPanel({
             <Select
               value={selectedElement.optionsSource || "static"}
               onValueChange={(value) => {
-                handleElementPropertyChange("optionsSource", value);
-                if (value === "static" && !selectedElement.options?.length) {
-                  // Initialize with one empty option if switching to static
-                  handleElementPropertyChange("options", [{ label: "Option 1", value: "option1" }]);
+                if (value === "dataSource") {
+                  // When switching to data source mode:
+                  // 1. Clear any existing static options to avoid confusion
+                  handleElementPropertyChange("options", []);
+                } else if (value === "static") {
+                  // When switching to static mode:
+                  // 1. Clear any data source references
+                  handleElementPropertyChange("dataSourceId", null);
+                  handleElementPropertyChange("displayField", "");
+                  handleElementPropertyChange("valueField", "");
+                  
+                  // 2. Set default options if none exist
+                  if (!selectedElement.options?.length) {
+                    handleElementPropertyChange("options", [
+                      { label: "Option 1", value: "option1" },
+                      { label: "Option 2", value: "option2" },
+                      { label: "Option 3", value: "option3" }
+                    ]);
+                  }
                 }
+                
+                // Finally set the options source
+                handleElementPropertyChange("optionsSource", value);
               }}
             >
               <SelectTrigger>

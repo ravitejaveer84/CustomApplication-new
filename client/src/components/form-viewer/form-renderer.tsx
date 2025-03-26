@@ -212,11 +212,16 @@ export function FormRenderer({
           let displayField = null;
           let valueField = null;
           
+          // Clear dropdownOptions if we're changing back to static
+          if (element.optionsSource !== "dataSource" && dropdownOptions.length > 0) {
+            setDropdownOptions([]);
+          }
+          
           // If element uses new format with optionsSource
           if (element.optionsSource === "dataSource") {
             dataSourceId = element.dataSourceId;
             displayField = element.displayField;
-            valueField = element.valueField;
+            valueField = element.valueField || element.displayField; // If valueField not set, use displayField
           } else {
             // Using old format
             dataSourceId = element.dataSource?.id;
