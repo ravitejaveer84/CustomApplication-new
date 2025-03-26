@@ -511,161 +511,127 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
   );
   
   const renderDataMappingProperties = () => {
-    // Debug data source and fields
-    console.log('Rendering data mapping properties:');
-    console.log('Selected element dataSource:', selectedElement?.dataSource);
-    console.log('Data sources:', dataSources);
-    console.log('Active data source:', activeDataSource);
-    console.log('Active source fields:', activeSourceFields);
+    // Ultimate simplified approach - direct field selector
+    const fields = activeSourceFields.map(field => field.name);
     
-    // Direct field display for debugging with improved error logging
-    const handleDataSourceSelect = async (sourceId: string) => {
-      console.log("Data source selected - raw value:", sourceId);
-      
-      // Handle empty selection
-      if (!sourceId) {
-        setActiveDataSource(null);
-        setActiveSourceFields([]);
-        handleFieldChange("dataSource", null);
-        return;
-      }
-      
-      const numericValue = parseInt(sourceId);
-      console.log("Parsed numeric value:", numericValue);
-      
-      if (isNaN(numericValue)) {
-        console.error("Invalid data source ID:", sourceId);
-        return;
-      }
-      
+    const selectDataSource = async (id: number) => {
       try {
-        // Fetch the data source directly
-        console.log("Directly fetching data for selected source ID:", numericValue);
-        const response = await fetch(`/api/datasources/${numericValue}`);
-        
+        const response = await fetch(`/api/datasources/${id}`);
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Failed to fetch data source. Status:", response.status, "Response:", errorText);
-          throw new Error(`Failed to fetch data source. Status: ${response.status}`);
+          throw new Error(`Failed to fetch data source: ${response.statusText}`);
         }
         
         const data = await response.json();
-        console.log("Successfully fetched data source data:", data);
+        console.log("Fetched data source:", data);
         
-        // Update active data source and fields
+        // Update the element
+        onElementUpdate({
+          ...selectedElement,
+          dataSource: {
+            id: id,
+            field: ""
+          }
+        });
+        
+        // Update fields display
         setActiveDataSource(data);
-        const fields = Array.isArray(data.fields) ? data.fields : [];
-        console.log("Setting active source fields:", fields);
-        setActiveSourceFields(fields);
-        
-        // Create proper structure for dataSource
-        const dataSource = {
-          id: numericValue,
-          field: ""
-        };
-        
-        // Update the form with the selected data source
-        handleFieldChange("dataSource", dataSource);
-        
+        const fieldList = Array.isArray(data.fields) ? data.fields : [];
+        setActiveSourceFields(fieldList);
       } catch (error) {
         console.error("Error fetching data source:", error);
-        // Show error in UI
-        setActiveDataSource(null);
-        setActiveSourceFields([]);
       }
     };
     
-    const handleFieldSelect = (fieldName: string) => {
-      console.log("Selected field value:", fieldName);
-      
-      if (!selectedElement.dataSource) {
-        console.error("Cannot select field without data source");
-        return;
-      }
-      
-      // Create a copy of the current data source settings
-      const dataSource = {
-        ...selectedElement.dataSource,
-        field: fieldName
-      };
-      
-      console.log("Updating data source with field:", dataSource);
-      
-      // Update the form with the selected field
-      handleFieldChange("dataSource", dataSource);
+    const selectField = (fieldName: string) => {
+      // Update element directly
+      onElementUpdate({
+        ...selectedElement,
+        dataSource: {
+          id: selectedElement.dataSource?.id || 0,
+          field: fieldName
+        }
+      });
     };
-    
+
+    // Manually create HTML fields to ensure they appear
     return (
       <div className="space-y-4">
-        {/* Data Source Field - Simplified for debugging */}
         <div>
-          <label className="text-sm font-medium">Data Source</label>
-          <div className="mt-1">
+          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2 block">
+            Data Source
+          </label>
+          
+          <select 
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm 
+                      ring-offset-background file:border-0 file:bg-transparent file:text-sm 
+                      file:font-medium placeholder:text-muted-foreground focus-visible:outline-none 
+                      focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 
+                      disabled:cursor-not-allowed disabled:opacity-50"
+            value={selectedElement.dataSource?.id || ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value) {
+                selectDataSource(parseInt(value));
+              }
+            }}
+          >
+            <option value="">Select data source</option>
+            {dataSources && dataSources.map((source) => (
+              <option key={source.id} value={source.id}>
+                {source.name} ({source.type})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2 block">
+            Map to Field
+          </label>
+          
+          <div className="bg-gray-100 p-2 mb-2 rounded text-xs">
+            <div>Current data source: {selectedElement.dataSource?.id ? `ID: ${selectedElement.dataSource.id}` : "None"}</div>
+            <div>Available fields: {activeSourceFields.length}</div>
+            <div>Selected field: {selectedElement.dataSource?.field || "None"}</div>
+          </div>
+          
+          {selectedElement.dataSource?.id ? (
             <select
-              className="w-full p-2 border rounded bg-white"
-              value={selectedElement?.dataSource?.id || ""}
-              onChange={(e) => handleDataSourceSelect(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm 
+                        ring-offset-background file:border-0 file:bg-transparent file:text-sm 
+                        file:font-medium placeholder:text-muted-foreground focus-visible:outline-none 
+                        focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 
+                        disabled:cursor-not-allowed disabled:opacity-50"
+              value={selectedElement.dataSource?.field || ""}
+              onChange={(e) => selectField(e.target.value)}
             >
-              <option value="">Select data source</option>
-              {loadingDataSources ? (
-                <option value="" disabled>Loading data sources...</option>
-              ) : !dataSources || dataSources.length === 0 ? (
-                <option value="" disabled>No data sources available</option>
+              <option value="">Select field</option>
+              {activeSourceFields.length === 0 ? (
+                <option value="" disabled>No fields available</option>
               ) : (
-                dataSources.map((source: DataSource) => (
-                  <option key={source.id} value={source.id}>
-                    {source.name} ({source.type})
+                activeSourceFields.map((field) => (
+                  <option key={field.name} value={field.name}>
+                    {field.name} ({field.type})
                   </option>
                 ))
               )}
             </select>
-          </div>
-        </div>
-        
-        {/* Field List Display */}
-        <div>
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-medium">Map to Field</label>
-            {selectedElement?.dataSource?.id && (
-              <button 
-                className="text-xs text-blue-500"
-                onClick={() => refetchDataSource()}
-              >
-                Refresh Fields
-              </button>
-            )}
-          </div>
-          
-          {/* Debug Information */}
-          <div className="bg-gray-100 p-2 rounded my-2 text-xs">
-            <p>Selected data source: {selectedElement?.dataSource?.id || "None"}</p>
-            <p>Number of fields available: {activeSourceFields.length}</p>
-            <p>Selected field: {selectedElement?.dataSource?.field || "None"}</p>
-          </div>
-          
-          {selectedElement?.dataSource?.id ? (
-            <div className="mt-2">
-              <select
-                className="w-full p-2 border rounded bg-white"
-                value={selectedElement?.dataSource?.field || ""}
-                onChange={(e) => handleFieldSelect(e.target.value)}
-              >
-                <option value="">Select field</option>
-                {activeSourceFields.length === 0 ? (
-                  <option value="" disabled>Loading fields...</option>
-                ) : (
-                  activeSourceFields.map((field: { name: string; type: string }) => (
-                    <option key={field.name} value={field.name}>
-                      {field.name} ({field.type})
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
           ) : (
-            <div className="mt-2 text-sm text-gray-500">
-              Please select a data source first
-            </div>
+            <div className="text-sm text-gray-500">Please select a data source first</div>
+          )}
+          
+          {selectedElement.dataSource?.id && (
+            <button 
+              type="button"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium 
+                        ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 
+                        focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none 
+                        disabled:opacity-50 border border-input bg-background hover:bg-accent 
+                        hover:text-accent-foreground h-8 px-3 mt-2"
+              onClick={() => refetchDataSource()}
+            >
+              Refresh Fields
+            </button>
           )}
         </div>
         
