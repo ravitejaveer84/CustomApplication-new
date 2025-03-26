@@ -71,7 +71,7 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
     refetch: refetchDataSource
   } = useQuery<DataSource>({
     queryKey: ["/api/datasources", dataSourceId],
-    enabled: !!dataSourceId,
+    enabled: !!dataSourceId && dataSourceId !== "",
     refetchOnMount: true,
     refetchOnWindowFocus: false
   });
@@ -400,139 +400,153 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
     </div>
   );
   
-  const renderDataMappingProperties = () => (
-    <div className="space-y-4">
-      {/* Data Source Field */}
-      <FormField
-        control={form.control}
-        name="dataSource.id"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Data Source</FormLabel>
-            <Select 
-              value={field.value ? field.value.toString() : ""} 
-              onValueChange={(value) => {
-                field.onChange(value);
-                const numericValue = parseInt(value);
-                // Create proper structure for dataSource
-                const dataSource = {
-                  ...selectedElement.dataSource,
-                  id: numericValue
-                };
-                handleFieldChange("dataSource", dataSource);
-                // Reset the field mapping when data source changes
-                handleFieldChange("dataSource.field", "");
-                // Change to data tab to show the updated fields
-                setTimeout(() => setActiveTab("data"), 100);
-                console.log("Changed data source to:", numericValue);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select data source" />
-              </SelectTrigger>
-              <SelectContent>
-                {loadingDataSources ? (
-                  <SelectItem value="loading" disabled>Loading...</SelectItem>
-                ) : !dataSources || dataSources.length === 0 ? (
-                  <SelectItem value="no-data-sources" disabled>No data sources</SelectItem>
-                ) : (
-                  dataSources.map((source: DataSource) => (
-                    <SelectItem key={source.id} value={source.id.toString()}>
-                      {source.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </FormItem>
-        )}
-      />
-      
-      {/* Field Mapping Field */}
-      <FormField
-        control={form.control}
-        name="dataSource.field"
-        render={({ field }) => (
-          <FormItem>
-            <div className="flex justify-between items-center mb-1">
-              <FormLabel>Map to Field</FormLabel>
-              {selectedElement.dataSource?.id && (
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => refetchDataSource()}
-                  className="h-6 px-2"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  <span className="text-xs">Refresh Fields</span>
-                </Button>
-              )}
-            </div>
-            <Select 
-              value={field.value ? field.value.toString() : ""} 
-              onValueChange={(value) => {
-                field.onChange(value);
-                const dataSource = {
-                  ...selectedElement.dataSource,
-                  field: value
-                };
-                handleFieldChange("dataSource", dataSource);
-              }}
-              disabled={!selectedElement.dataSource?.id}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select field" />
-              </SelectTrigger>
-              <SelectContent>
-                {!selectedElement.dataSource?.id ? (
-                  <SelectItem value="select-datasource-first" disabled>Select a data source first</SelectItem>
-                ) : loadingDataSource ? (
-                  <SelectItem value="loading-fields" disabled>Loading fields...</SelectItem>
-                ) : !selectedDataSource || !selectedDataSource.fields || selectedDataSource.fields.length === 0 ? (
-                  <SelectItem value="no-fields" disabled>No fields available</SelectItem>
-                ) : (
-                  selectedDataSource.fields.map((field: { name: string; type: string; selected: boolean }) => (
-                    <SelectItem key={field.name} value={field.name}>
-                      <div className="flex items-center">
-                        <span>{field.name}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">({field.type})</span>
-                        {field.selected && (
-                          <span className="ml-auto text-xs text-primary">✓ Selected</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-                {/* No debug logging in render method */}
-              </SelectContent>
-            </Select>
-          </FormItem>
-        )}
-      />
-      
-      {/* Default Value Field */}
-      <FormField
-        control={form.control}
-        name="defaultValue"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Default Value</FormLabel>
-            <FormControl>
-              <Input 
-                {...field}
-                placeholder="Default value (optional)" 
-                onChange={(e) => {
-                  field.onChange(e);
-                  handleFieldChange("defaultValue", e.target.value);
+  const renderDataMappingProperties = () => {
+    // Debug data source and fields
+    console.log('Rendering data mapping properties:');
+    console.log('Selected element dataSource:', selectedElement?.dataSource);
+    console.log('Data sources:', dataSources);
+    console.log('Selected data source:', selectedDataSource);
+    console.log('Fields available:', selectedDataSource?.fields);
+  
+    return (
+      <div className="space-y-4">
+        {/* Data Source Field */}
+        <FormField
+          control={form.control}
+          name="dataSource.id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Data Source</FormLabel>
+              <Select 
+                value={field.value ? field.value.toString() : ""} 
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  const numericValue = parseInt(value);
+                  // Create proper structure for dataSource
+                  const dataSource = {
+                    id: numericValue,
+                    field: ""
+                  };
+                  handleFieldChange("dataSource", dataSource);
+                  // Reset the field mapping when data source changes
+                  handleFieldChange("dataSource.field", "");
+                  console.log("Changed data source to:", numericValue);
+                  
+                  // Force refetch data source to get its fields
+                  refetchDataSource();
                 }}
-              />
-            </FormControl>
-          </FormItem>
-        )}
-      />
-    </div>
-  );
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select data source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {loadingDataSources ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : !dataSources || dataSources.length === 0 ? (
+                    <SelectItem value="no-data-sources" disabled>No data sources</SelectItem>
+                  ) : (
+                    dataSources.map((source: DataSource) => (
+                      <SelectItem key={source.id} value={source.id.toString()}>
+                        {source.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </FormItem>
+          )}
+        />
+        
+        {/* Field Mapping Field */}
+        <FormField
+          control={form.control}
+          name="dataSource.field"
+          render={({ field }) => (
+            <FormItem>
+              <div className="flex justify-between items-center mb-1">
+                <FormLabel>Map to Field</FormLabel>
+                {selectedElement.dataSource?.id && (
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => refetchDataSource()}
+                    className="h-6 px-2"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    <span className="text-xs">Refresh Fields</span>
+                  </Button>
+                )}
+              </div>
+              <Select 
+                value={field.value ? field.value.toString() : ""} 
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  const dataSource = {
+                    ...selectedElement.dataSource,
+                    field: value
+                  };
+                  handleFieldChange("dataSource", dataSource);
+                }}
+                disabled={!selectedElement.dataSource?.id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select field" />
+                </SelectTrigger>
+                <SelectContent>
+                  {!selectedElement.dataSource?.id ? (
+                    <SelectItem value="select-datasource-first" disabled>Select a data source first</SelectItem>
+                  ) : loadingDataSource ? (
+                    <SelectItem value="loading-fields" disabled>Loading fields...</SelectItem>
+                  ) : !selectedDataSource || !selectedDataSource.fields || selectedDataSource.fields.length === 0 ? (
+                    <SelectItem value="no-fields" disabled>No fields available</SelectItem>
+                  ) : (
+                    selectedDataSource.fields.map((field: { name: string; type: string; selected: boolean }) => (
+                      <SelectItem key={field.name} value={field.name}>
+                        <div className="flex items-center">
+                          <span>{field.name}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">({field.type})</span>
+                          {field.selected && (
+                            <span className="ml-auto text-xs text-primary">✓ Selected</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {selectedDataSource?.fields && selectedDataSource.fields.length > 0 && (
+                  <span>Available fields: {selectedDataSource.fields.length}</span>
+                )}
+              </div>
+            </FormItem>
+          )}
+        />
+        
+        {/* Default Value Field */}
+        <FormField
+          control={form.control}
+          name="defaultValue"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Default Value</FormLabel>
+              <FormControl>
+                <Input 
+                  {...field}
+                  placeholder="Default value (optional)" 
+                  onChange={(e) => {
+                    field.onChange(e);
+                    handleFieldChange("defaultValue", e.target.value);
+                  }}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+      </div>
+    );
+  };
   
   const renderAdvancedProperties = () => (
     <div className="space-y-4">
