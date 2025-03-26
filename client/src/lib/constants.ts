@@ -199,6 +199,7 @@ export const BUTTON_TYPES = [
   { value: "reset", label: "Reset Form" },
   { value: "approve", label: "Approve Submission" },
   { value: "reject", label: "Reject Submission" },
+  { value: "request-approval", label: "Request Approval" },
   { value: "custom", label: "Custom Action" }
 ];
 
@@ -522,8 +523,19 @@ export function getDefaultElement(type: string): FormElement {
       return {
         ...baseElement,
         label: "Submit",
-        action: "submit",
-        variant: "primary",
+        buttonType: "submit",
+        buttonVariant: "primary",
+        buttonAction: {
+          type: "submit-form",
+          requireConfirmation: false,
+          requireReason: false,
+          confirmationMessage: "Are you sure you want to submit this form?",
+          validationRules: "",
+          notifyUsers: [],
+          navigateTo: "",
+          onSuccess: "",
+          onError: ""
+        },
         size: "medium"
       };
     case "html":
