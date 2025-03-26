@@ -28,6 +28,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { Plus, RefreshCw, Code, Info, HelpCircle, Trash2, Table, Settings, PlusCircle } from "lucide-react";
+
+// Define a type for data source fields
+interface DataSourceField {
+  name: string;
+  type: string;
+  selected: boolean;
+}
 import { useQuery } from "@tanstack/react-query";
 import { ActionEditor } from "./action-editor";
 import { ButtonPropertiesEditor } from "./button-properties-editor";
@@ -1006,7 +1013,7 @@ export function PropertiesPanel({
                         <SelectValue placeholder="Select field to display" />
                       </SelectTrigger>
                       <SelectContent>
-                        {selectedDataSource?.fields?.filter(f => f.selected).map((field) => (
+                        {selectedDataSource?.fields?.filter((f: DataSourceField) => f.selected).map((field: DataSourceField) => (
                           <SelectItem key={field.name} value={field.name}>
                             {field.name}
                           </SelectItem>
