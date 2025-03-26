@@ -325,21 +325,29 @@ export function FormRenderer({
           dataSourceId = element.dataSource?.id;
         }
         
-        // Determine which options to use based strictly on the optionsSource
-        let displayOptions;
+        // Simplified logic for determining which options to show
+        let displayOptions: {label: string, value: string}[] = [];
         
+        console.log("Deciding dropdown options source mode:", {
+          optionsSource: element.optionsSource,
+          hasDataSourceId: Boolean(dataSourceId),
+          dataSourceOptionsCount: dropdownOptions.length,
+          staticOptionsCount: (element.options || []).length
+        });
+        
+        // Explicitly check if we have data source options and are in data source mode
         if (element.optionsSource === "dataSource" && dropdownOptions.length > 0) {
-          // If data source mode is explicitly set, use data source options (if loaded)
+          // If we're in data source mode and have loaded options, use them
           displayOptions = dropdownOptions;
-        } else if (element.optionsSource === "static" || !element.optionsSource) {
-          // If static mode or not specified, use static options
-          displayOptions = element.options || [];
-        } else if (dataSourceId && dropdownOptions.length > 0) {
-          // Legacy support for old format without optionsSource flag
-          displayOptions = dropdownOptions;
+          console.log(`Using ${dropdownOptions.length} data source options for element ${element.id}`);
+        } else if (element.optionsSource === "dataSource" && isLoadingOptions) {
+          // If we're still loading data source options
+          displayOptions = []; // Show empty while loading
+          console.log(`Still loading data source options for element ${element.id}`);
         } else {
-          // Fallback to static options if nothing else works
+          // In all other cases (static mode or fallback), use the static options
           displayOptions = element.options || [];
+          console.log(`Using ${displayOptions.length} static options for element ${element.id}`);
         }
         
         return (

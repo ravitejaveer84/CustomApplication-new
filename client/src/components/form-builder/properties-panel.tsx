@@ -857,13 +857,12 @@ export function PropertiesPanel({
               onValueChange={(value) => {
                 console.log("Changing dropdown options source from", selectedElement.optionsSource, "to", value);
                 
-                // First set the option source type
-                handleElementPropertyChange("optionsSource", value);
-                
                 if (value === "dataSource") {
                   // When switching to data source mode:
-                  // Clear static options and add data source fields
-                  handleElementPropertyChange("options", []);
+                  // Don't clear static options to preserve them if user switches back
+                  
+                  // Set data source mode first
+                  handleElementPropertyChange("optionsSource", value);
                   
                   // Initialize data source fields if empty
                   if (!selectedElement.dataSourceId) {
@@ -954,7 +953,10 @@ export function PropertiesPanel({
                         <Button 
                           variant="ghost" 
                           size="icon"
-                          onClick={() => {
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault(); // Prevent form submission
+                            e.stopPropagation(); // Stop event propagation
                             const newOptions = [...(selectedElement.options || [])];
                             newOptions.splice(index, 1);
                             handleElementPropertyChange("options", newOptions);
@@ -976,7 +978,10 @@ export function PropertiesPanel({
                   type="button"
                   variant="outline"
                   className="w-full mt-2"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault(); // Prevent form submission
+                    e.stopPropagation(); // Stop event propagation
+                    
                     // Create first option or add to existing options
                     const currentOptions = selectedElement.options || [];
                     const newOptions = [
