@@ -63,49 +63,99 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
     enabled: activeTab === "data"
   });
   
-  // Find the selected data source directly from the dataSources array
+  // Get the data source ID from the selected element
   const dataSourceId = selectedElement?.dataSource?.id;
   
-  // First find from the array of all data sources
-  const matchingDataSource = dataSources.find(ds => ds.id === dataSourceId);
-  
-  // Then fetch the specific one if we need more details
+  // Get all data sources
   const { 
-    data: selectedDataSource, 
     isLoading: loadingDataSource,
-    refetch: refetchDataSource
-  } = useQuery<DataSource>({
-    queryKey: ["/api/datasources", dataSourceId],
-    enabled: !!dataSourceId && dataSourceId !== "",
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
-    // Always make sure the fields array is available
-    select: (data) => {
-      if (!data) return matchingDataSource || null;
+    refetch: refetchDataSources
+  } = useQuery({
+    queryKey: ["/api/datasources"],
+    enabled: true,
+    refetchOnMount: true
+  });
+  
+  // This will directly fetch the full data source with its fields
+  const [selectedDataSource, setSelectedDataSource] = useState<any>(null);
+  
+  // Create a function to fetch the specific data source directly
+  const fetchDataSource = useCallback(async (id: number) => {
+    if (!id) return;
+    
+    try {
+      console.log("Directly fetching data source with ID:", id);
+      const response = await fetch(`/api/datasources/${id}`);
       
-      // Make sure fields is defined
-      const fieldsArray = data.fields || [];
-      
-      // Parse the config string if it's a string
-      if (data && typeof data.config === 'string' && data.config) {
-        try {
-          const parsedConfig = JSON.parse(data.config);
-          return {
-            ...data,
-            fields: fieldsArray,
-            parsedConfig
-          };
-        } catch (e) {
-          console.error("Error parsing config:", e);
-        }
+      if (!response.ok) {
+        throw new Error(`Failed to fetch data source: ${response.statusText}`);
       }
       
-      return {
-        ...data,
-        fields: fieldsArray
-      };
+      const data = await response.json();
+      console.log("Fetched data source:", data);
+      
+      // Ensure fields is always an array and parse config if it's a string
+      if (data) {
+        // Initialize fields array if not present
+        if (!data.fields) {
+          data.fields = [];
+        }
+        
+        // Parse config if it's a JSON string
+        if (typeof data.config === 'string' && data.config) {
+          try {
+            data.parsedConfig = JSON.parse(data.config);
+          } catch (e) {
+            console.error("Error parsing config:", e);
+          }
+        }
+        
+        setSelectedDataSource(data);
+        return data;
+      }
+    } catch (err) {
+      console.error("Error fetching data source:", err);
     }
-  });
+    
+    return null;
+  }, []);
+  
+  // Function to refresh the data source
+  const refetchDataSource = useCallback(() => {
+    if (selectedElement?.dataSource?.id) {
+      const fetchData = async () => {
+        try {
+          console.log("Manually refreshing data source with ID:", selectedElement.dataSource.id);
+          const response = await fetch(`/api/datasources/${selectedElement.dataSource.id}`);
+          
+          if (!response.ok) {
+            throw new Error("Failed to fetch data source");
+          }
+          
+          const data = await response.json();
+          console.log("Refreshed data source:", data);
+          
+          setActiveDataSource(data);
+          // Ensure fields is an array
+          const fields = Array.isArray(data.fields) ? data.fields : [];
+          setActiveSourceFields(fields);
+        } catch (error) {
+          console.error("Error refreshing data source:", error);
+        }
+      };
+      
+      fetchData();
+    }
+  }, [selectedElement?.dataSource?.id]);
+  
+  // Fetch the data source when the ID changes
+  useEffect(() => {
+    if (dataSourceId) {
+      fetchDataSource(dataSourceId);
+    } else {
+      setSelectedDataSource(null);
+    }
+  }, [dataSourceId, fetchDataSource]);
   
   const handleFieldChange = useCallback((fieldName: string, value: any) => {
     if (!selectedElement) return;
@@ -431,23 +481,46 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
     </div>
   );
   
+  // State for holding selected data source details with fields
+  const [activeDataSource, setActiveDataSource] = useState<any>(null);
+  const [activeSourceFields, setActiveSourceFields] = useState<any[]>([]);
+  
+  // Direct API call to get data source with fields when id changes
+  useEffect(() => {
+    if (selectedElement?.dataSource?.id) {
+      const fetchSourceData = async () => {
+        try {
+          const response = await fetch(`/api/datasources/${selectedElement.dataSource.id}`);
+          if (!response.ok) throw new Error('Failed to fetch data source');
+          
+          const data = await response.json();
+          console.log("Fetched data source data:", data);
+          
+          setActiveDataSource(data);
+          // Ensure fields is an array
+          const fields = Array.isArray(data.fields) ? data.fields : [];
+          setActiveSourceFields(fields);
+        } catch (error) {
+          console.error("Error fetching data source:", error);
+          setActiveDataSource(null);
+          setActiveSourceFields([]);
+        }
+      };
+      
+      fetchSourceData();
+    } else {
+      setActiveDataSource(null);
+      setActiveSourceFields([]);
+    }
+  }, [selectedElement?.dataSource?.id]);
+  
   const renderDataMappingProperties = () => {
-    // Get the current data source using either the loaded data or the matching one from the array
-    const activeDataSource = selectedDataSource || matchingDataSource;
-
     // Debug data source and fields
     console.log('Rendering data mapping properties:');
     console.log('Selected element dataSource:', selectedElement?.dataSource);
     console.log('Data sources:', dataSources);
     console.log('Active data source:', activeDataSource);
-    console.log('Fields available:', activeDataSource?.fields);
-    
-    // Log the matching data source directly from array
-    console.log('Matching data source from array:', matchingDataSource);
-    
-    // Explicitly extract fields from active data source
-    const availableFields = activeDataSource?.fields || [];
-    console.log('Available fields:', availableFields);
+    console.log('Active source fields:', activeSourceFields);
     
     return (
       <div className="space-y-4">
@@ -537,15 +610,15 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
                 <SelectContent>
                   {!selectedElement.dataSource?.id ? (
                     <SelectItem value="select-datasource-first" disabled>Select a data source first</SelectItem>
-                  ) : loadingDataSource ? (
+                  ) : selectedElement.dataSource?.id && !activeSourceFields.length ? (
                     <SelectItem value="loading-fields" disabled>Loading fields...</SelectItem>
-                  ) : !availableFields || availableFields.length === 0 ? (
+                  ) : !activeSourceFields || activeSourceFields.length === 0 ? (
                     <SelectItem value="no-fields" disabled>No fields available in data source</SelectItem>
                   ) : (
                     // Add extra debugging to see exactly what fields we have
                     <>
-                      {console.log("Rendering fields in dropdown:", availableFields)}
-                      {availableFields.map((field: { name: string; type: string; selected: boolean }) => (
+                      {console.log("Rendering fields in dropdown:", activeSourceFields)}
+                      {activeSourceFields.map((field: { name: string; type: string; selected: boolean }) => (
                         <SelectItem key={field.name} value={field.name}>
                           <div className="flex items-center">
                             <span>{field.name}</span>
@@ -561,8 +634,8 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
                 </SelectContent>
               </Select>
               <div className="mt-1 text-xs text-muted-foreground">
-                {availableFields.length > 0 && (
-                  <span>Available fields: {availableFields.length}</span>
+                {activeSourceFields.length > 0 && (
+                  <span>Available fields: {activeSourceFields.length}</span>
                 )}
               </div>
             </FormItem>
