@@ -48,7 +48,9 @@ const formElementBase = z.object({
   type: z.enum([
     "text", "number", "date", "textarea", "dropdown", 
     "radio", "checkbox", "toggle", "section", "column", "divider",
-    "button" // Added button type
+    "button", "datatable", "combobox", "multiselect", "email", "password",
+    "phone", "url", "datetime", "time", "file", "image", "signature",
+    "barcode", "chart", "spacer", "slider", "rating"
   ]),
   label: z.string(),
   name: z.string(),
@@ -65,22 +67,30 @@ const formElementBase = z.object({
     label: z.string(),
     value: z.string()
   })).optional(),
+  // Updated to support both old and new data source format
   dataSource: z.object({
     id: z.string().optional(),
     field: z.string().optional()
   }).optional(),
+  // New properties for enhanced data source binding
+  dataSourceId: z.number().optional(),
+  dataField: z.string().optional(),
+  optionsSource: z.enum(["static", "dataSource"]).optional(),
+  valueField: z.string().optional(),
+  displayField: z.string().optional(),
   defaultValue: z.string().optional(),
+  defaultToCurrentUser: z.boolean().optional(),
   cssClass: z.string().optional(),
   visibilityCondition: z.object({
     field: z.string(),
     operator: z.string(),
     value: z.string()
   }).optional(),
-  // New properties for buttons
+  // Properties for buttons
   buttonType: z.enum(["submit", "reset", "approve", "reject", "custom"]).optional(),
   buttonVariant: z.enum(["default", "primary", "secondary", "outline", "destructive", "ghost", "link"]).optional(),
   buttonAction: z.object({
-    type: z.enum(["submit-form", "reset-form", "approve", "reject", "navigate", "custom-code"]).optional(),
+    type: z.enum(["submit-form", "reset-form", "approve", "reject", "navigate", "custom-code", "request-approval"]).optional(),
     confirmationMessage: z.string().optional(),
     requireConfirmation: z.boolean().optional(),
     requireReason: z.boolean().optional(),
@@ -91,6 +101,20 @@ const formElementBase = z.object({
     onSuccess: z.string().optional(),
     onError: z.string().optional()
   }).optional(),
+  // Data table specific properties
+  columns: z.array(z.object({
+    field: z.string(),
+    header: z.string(),
+    width: z.number().optional(),
+    sortable: z.boolean().optional(),
+    filterable: z.boolean().optional(),
+    visible: z.boolean().optional()
+  })).optional(),
+  pagination: z.boolean().optional(),
+  searchable: z.boolean().optional(),
+  exportable: z.boolean().optional(),
+  resizableColumns: z.boolean().optional(),
+  rowsPerPage: z.number().optional(),
 });
 
 // Now define the full schema with recursive elements

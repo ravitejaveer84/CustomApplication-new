@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApprovalButton } from "./approval-button";
+import { DataTable } from "./data-table";
 
 interface FormRendererProps {
   formId: number;
@@ -374,6 +375,19 @@ export function FormRenderer({
               formId={formId}
               formData={formData}
               onSuccess={() => onSubmit?.(formData)}
+            />
+            {helpText && <p className="text-sm text-gray-500 mt-1">{helpText}</p>}
+          </div>
+        );
+
+      case "datatable":
+        // Use our DataTable component
+        return (
+          <div className="my-6 w-full">
+            <DataTable
+              element={element}
+              formId={formId}
+              formData={formData}
             />
             {helpText && <p className="text-sm text-gray-500 mt-1">{helpText}</p>}
           </div>
