@@ -344,6 +344,7 @@ export function getDefaultElement(type: string): FormElement {
       return {
         ...baseElement,
         placeholder: "Select an option",
+        optionsSource: "static",
         options: [
           { label: "Option 1", value: "option1" },
           { label: "Option 2", value: "option2" },
@@ -355,6 +356,7 @@ export function getDefaultElement(type: string): FormElement {
         ...baseElement,
         placeholder: "Search or select...",
         allowCustomValue: true,
+        optionsSource: "static",
         options: [
           { label: "Option 1", value: "option1" },
           { label: "Option 2", value: "option2" },
@@ -365,6 +367,7 @@ export function getDefaultElement(type: string): FormElement {
       return {
         ...baseElement,
         placeholder: "Select options",
+        optionsSource: "static",
         options: [
           { label: "Option 1", value: "option1" },
           { label: "Option 2", value: "option2" },
