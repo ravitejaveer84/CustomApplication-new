@@ -607,12 +607,6 @@ function getDefaultLabel(type: string): string {
 // Navigation items - these will be filtered in sidebar based on role
 export const NAVIGATION_ITEMS = [
   {
-    category: "GENERAL",
-    items: [
-      { icon: "clipboard-check", label: "Approval Requests", path: "/approval-requests", adminOnly: false }
-    ]
-  },
-  {
     category: "ADMINISTRATION",
     items: [
       { icon: "users", label: "Users", path: "/users", adminOnly: true },
