@@ -500,59 +500,201 @@ export function PropertiesPanel({
         selectedElement.type === "radio" ||
         selectedElement.type === "checkbox") && (
         <div className="mt-4">
-          <FormLabel>Options</FormLabel>
-          <div className="space-y-2 mt-2">
-            {selectedElement.options?.map(
-              (option: { label: string; value: string }, index: number) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    value={option.label}
-                    onChange={(e) => {
-                      const newOptions = [...(selectedElement.options || [])];
-                      newOptions[index] = {
-                        ...newOptions[index],
-                        label: e.target.value,
-                      };
-                      handleElementPropertyChange("options", newOptions);
-                    }}
-                    placeholder="Option label"
-                    className="flex-1"
-                  />
-                  <Input
-                    value={option.value}
-                    onChange={(e) => {
-                      const newOptions = [...(selectedElement.options || [])];
-                      newOptions[index] = {
-                        ...newOptions[index],
-                        value: e.target.value,
-                      };
-                      handleElementPropertyChange("options", newOptions);
-                    }}
-                    placeholder="Value"
-                    className="flex-1"
-                  />
-                </div>
-              ),
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full mt-2"
-              onClick={() => {
-                const newOptions = [
-                  ...(selectedElement.options || []),
-                  {
-                    label: "New Option",
-                    value: `option${selectedElement.options?.length || 0 + 1}`,
-                  },
-                ];
-                handleElementPropertyChange("options", newOptions);
+          {/* Option Type Selection */}
+          <div className="mb-3">
+            <FormLabel className="mb-2">Options Source</FormLabel>
+            <Select
+              value={selectedElement.optionsSource || "static"}
+              onValueChange={(value) => {
+                handleElementPropertyChange("optionsSource", value);
+                if (value === "static" && !selectedElement.options?.length) {
+                  // Initialize with one empty option if switching to static
+                  handleElementPropertyChange("options", [{ label: "Option 1", value: "option1" }]);
+                }
               }}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Option
-            </Button>
+              <SelectTrigger>
+                <SelectValue placeholder="Select options source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="static">Static Options</SelectItem>
+                <SelectItem value="dataSource">Data Source</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Static Options */}
+          {selectedElement.optionsSource !== "dataSource" && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <FormLabel>Static Options</FormLabel>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Define fixed options that will always appear in this dropdown.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="space-y-2 mt-2">
+                {selectedElement.options?.map(
+                  (option: { label: string; value: string }, index: number) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={option.label}
+                        onChange={(e) => {
+                          const newOptions = [...(selectedElement.options || [])];
+                          newOptions[index] = {
+                            ...newOptions[index],
+                            label: e.target.value,
+                          };
+                          handleElementPropertyChange("options", newOptions);
+                        }}
+                        placeholder="Option label"
+                        className="flex-1"
+                      />
+                      <Input
+                        value={option.value}
+                        onChange={(e) => {
+                          const newOptions = [...(selectedElement.options || [])];
+                          newOptions[index] = {
+                            ...newOptions[index],
+                            value: e.target.value,
+                          };
+                          handleElementPropertyChange("options", newOptions);
+                        }}
+                        placeholder="Value"
+                        className="flex-1"
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => {
+                          const newOptions = [...(selectedElement.options || [])];
+                          newOptions.splice(index, 1);
+                          handleElementPropertyChange("options", newOptions);
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                      </Button>
+                    </div>
+                  ),
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={() => {
+                    const newOptions = [
+                      ...(selectedElement.options || []),
+                      {
+                        label: "New Option",
+                        value: `option${(selectedElement.options?.length || 0) + 1}`,
+                      },
+                    ];
+                    handleElementPropertyChange("options", newOptions);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Option
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Data Source Options */}
+          {selectedElement.optionsSource === "dataSource" && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <FormLabel>Data Source</FormLabel>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Connect this dropdown to a data source to dynamically populate its options.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              <Select
+                value={selectedElement.dataSourceId?.toString() || ""}
+                onValueChange={(value) => {
+                  handleElementPropertyChange("dataSourceId", parseInt(value));
+                  // Reset field selections when data source changes
+                  handleElementPropertyChange("valueField", "");
+                  handleElementPropertyChange("displayField", "");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select data source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {dataSources.map((ds) => (
+                    <SelectItem key={ds.id} value={ds.id.toString()}>
+                      {ds.name} {ds.type && <Badge variant="outline" className="ml-2">{ds.type}</Badge>}
+                    </SelectItem>
+                  ))}
+                  {dataSources.length === 0 && (
+                    <div className="p-2 text-center text-sm text-muted-foreground">
+                      No data sources available. Please create one first.
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+
+              {selectedElement.dataSourceId && (
+                <>
+                  <div>
+                    <FormLabel>Display Field</FormLabel>
+                    <Select
+                      value={selectedElement.displayField || ""}
+                      onValueChange={(value) => handleElementPropertyChange("displayField", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select field to display" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedDataSource?.fields?.filter(f => f.selected).map((field) => (
+                          <SelectItem key={field.name} value={field.name}>
+                            {field.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <FormLabel>Value Field</FormLabel>
+                    <Select
+                      value={selectedElement.valueField || ""}
+                      onValueChange={(value) => handleElementPropertyChange("valueField", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select field for value" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedDataSource?.fields?.filter(f => f.selected).map((field) => (
+                          <SelectItem key={field.name} value={field.name}>
+                            {field.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
