@@ -527,68 +527,70 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
           render={({ field }) => (
             <FormItem>
               <FormLabel>Data Source</FormLabel>
-              <Select 
-                value={field.value ? field.value.toString() : ""} 
-                onValueChange={async (value) => {
-                  field.onChange(value);
-                  const numericValue = parseInt(value);
-                  
-                  try {
-                    // Fetch the data source directly
-                    console.log("Directly fetching data for selected source ID:", numericValue);
-                    const response = await fetch(`/api/datasources/${numericValue}`);
+              <FormControl>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={field.value ? field.value.toString() : ""}
+                  onChange={async (e) => {
+                    const value = e.target.value;
+                    field.onChange(value);
+                    const numericValue = parseInt(value);
                     
-                    if (!response.ok) {
-                      throw new Error("Failed to fetch data source");
+                    if (isNaN(numericValue)) return;
+                    
+                    try {
+                      // Fetch the data source directly
+                      console.log("Directly fetching data for selected source ID:", numericValue);
+                      const response = await fetch(`/api/datasources/${numericValue}`);
+                      
+                      if (!response.ok) {
+                        throw new Error("Failed to fetch data source");
+                      }
+                      
+                      const data = await response.json();
+                      console.log("Successfully fetched data source data:", data);
+                      
+                      // Update active data source and fields
+                      setActiveDataSource(data);
+                      const fields = Array.isArray(data.fields) ? data.fields : [];
+                      setActiveSourceFields(fields);
+                      
+                      // Create proper structure for dataSource
+                      const dataSource = {
+                        id: numericValue,
+                        field: ""
+                      };
+                      
+                      // Update the form with the selected data source
+                      handleFieldChange("dataSource", dataSource);
+                      
+                      // Reset the field mapping
+                      handleFieldChange("dataSource.field", "");
+                      
+                    } catch (error) {
+                      console.error("Error fetching data source:", error);
                     }
-                    
-                    const data = await response.json();
-                    console.log("Successfully fetched data source data:", data);
-                    
-                    // Update active data source and fields
-                    setActiveDataSource(data);
-                    const fields = Array.isArray(data.fields) ? data.fields : [];
-                    setActiveSourceFields(fields);
-                    
-                    // Create proper structure for dataSource
-                    const dataSource = {
-                      id: numericValue,
-                      field: ""
-                    };
-                    
-                    // Update the form with the selected data source
-                    handleFieldChange("dataSource", dataSource);
-                    
-                    // Reset the field mapping
-                    handleFieldChange("dataSource.field", "");
-                    
-                  } catch (error) {
-                    console.error("Error fetching data source:", error);
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select data source" />
-                </SelectTrigger>
-                <SelectContent>
+                  }}
+                >
+                  <option value="">Select data source</option>
                   {loadingDataSources ? (
-                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                    <option value="" disabled>Loading...</option>
                   ) : !dataSources || dataSources.length === 0 ? (
-                    <SelectItem value="no-data-sources" disabled>No data sources</SelectItem>
+                    <option value="" disabled>No data sources</option>
                   ) : (
                     dataSources.map((source: DataSource) => (
-                      <SelectItem key={source.id} value={source.id.toString()}>
+                      <option key={source.id} value={source.id.toString()}>
                         {source.name}
-                      </SelectItem>
+                      </option>
                     ))
                   )}
-                </SelectContent>
-              </Select>
+                </select>
+              </FormControl>
             </FormItem>
           )}
         />
         
-        {/* Field Mapping Field */}
+        {/* Field Mapping Field - Using native select for better compatibility */}
         <FormField
           control={form.control}
           name="dataSource.field"
@@ -609,39 +611,38 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
                   </Button>
                 )}
               </div>
-              <Select 
-                value={field.value ? field.value.toString() : ""} 
-                onValueChange={(value) => {
-                  console.log("Selected field value:", value);
-                  field.onChange(value);
-                  const dataSource = {
-                    ...selectedElement.dataSource,
-                    field: value
-                  };
-                  handleFieldChange("dataSource", dataSource);
-                }}
-                disabled={!selectedElement.dataSource?.id}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select field" />
-                </SelectTrigger>
-                <SelectContent>
+              <FormControl>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={field.value ? field.value.toString() : ""}
+                  onChange={(e) => {
+                    console.log("Selected field value:", e.target.value);
+                    field.onChange(e.target.value);
+                    const dataSource = {
+                      ...selectedElement.dataSource,
+                      field: e.target.value
+                    };
+                    handleFieldChange("dataSource", dataSource);
+                  }}
+                  disabled={!selectedElement.dataSource?.id}
+                >
+                  <option value="">Select field</option>
                   {!selectedElement.dataSource?.id ? (
-                    <SelectItem value="select-datasource-first" disabled>Select a data source first</SelectItem>
+                    <option value="" disabled>Select a data source first</option>
                   ) : selectedElement.dataSource?.id && !activeSourceFields.length ? (
-                    <SelectItem value="loading-fields" disabled>Loading fields...</SelectItem>
+                    <option value="" disabled>Loading fields...</option>
                   ) : !activeSourceFields || activeSourceFields.length === 0 ? (
-                    <SelectItem value="no-fields" disabled>No fields available in data source</SelectItem>
+                    <option value="" disabled>No fields available in data source</option>
                   ) : (
-                    // Simplified field item rendering to avoid any potential issues
-                    activeSourceFields.map((field: { name: string; type: string; selected: boolean }) => (
-                      <SelectItem key={field.name} value={field.name}>
-                        {field.name}
-                      </SelectItem>
+                    // Map the fields to standard HTML options
+                    activeSourceFields.map((fieldOption: { name: string; type: string; selected: boolean }) => (
+                      <option key={fieldOption.name} value={fieldOption.name}>
+                        {fieldOption.name} ({fieldOption.type})
+                      </option>
                     ))
                   )}
-                </SelectContent>
-              </Select>
+                </select>
+              </FormControl>
               <div className="mt-1 text-xs text-muted-foreground">
                 {activeSourceFields.length > 0 && (
                   <span>Available fields: {activeSourceFields.length}</span>
