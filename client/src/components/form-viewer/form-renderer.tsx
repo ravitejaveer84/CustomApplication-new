@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApprovalButton } from "./approval-button";
 import { DataTable } from "./data-table";
+import { Gallery } from "./gallery";
 import { apiRequest } from "@/lib/queryClient";
 
 interface FormRendererProps {
@@ -489,6 +490,20 @@ export function FormRenderer({
               formData={formData}
             />
             {helpText && <p className="text-sm text-gray-500 mt-1">{helpText}</p>}
+          </div>
+        );
+        
+      case "gallery":
+        // Use our Gallery component
+        return (
+          <div className="my-6 w-full">
+            <h3 className="text-lg font-medium mb-2">{label}</h3>
+            {helpText && <p className="text-sm text-gray-500 mb-3">{helpText}</p>}
+            <Gallery
+              element={element}
+              formId={formId}
+              formData={formData}
+            />
           </div>
         );
         
