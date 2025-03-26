@@ -158,3 +158,26 @@ export const insertFormSubmissionSchema = createInsertSchema(formSubmissions).om
 
 export type InsertFormSubmission = z.infer<typeof insertFormSubmissionSchema>;
 export type FormSubmission = typeof formSubmissions.$inferSelect;
+
+// Approval Requests Schema
+export const approvalRequests = pgTable("approval_requests", {
+  id: serial("id").primaryKey(),
+  formSubmissionId: integer("form_submission_id").references(() => formSubmissions.id),
+  requesterId: integer("requester_id").references(() => users.id),
+  status: text("status").default("pending").notNull(), // pending, approved, rejected
+  approvedById: integer("approved_by_id").references(() => users.id),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertApprovalRequestSchema = createInsertSchema(approvalRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  approvedById: true,
+  status: true,
+});
+
+export type InsertApprovalRequest = z.infer<typeof insertApprovalRequestSchema>;
+export type ApprovalRequest = typeof approvalRequests.$inferSelect;

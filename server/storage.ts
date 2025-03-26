@@ -3,7 +3,8 @@ import {
   applications, type Application, type InsertApplication,
   forms, type Form, type InsertForm,
   dataSources, type DataSource, type InsertDataSource,
-  formSubmissions, type FormSubmission, type InsertFormSubmission
+  formSubmissions, type FormSubmission, type InsertFormSubmission,
+  approvalRequests, type ApprovalRequest, type InsertApprovalRequest
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -42,6 +43,13 @@ export interface IStorage {
   // Form Submission methods
   getFormSubmissions(formId: number): Promise<FormSubmission[]>;
   createFormSubmission(submission: InsertFormSubmission): Promise<FormSubmission>;
+  
+  // Approval Request methods
+  getApprovalRequests(): Promise<ApprovalRequest[]>;
+  getApprovalRequestsByUser(userId: number): Promise<ApprovalRequest[]>;
+  getPendingApprovalRequests(): Promise<ApprovalRequest[]>;
+  createApprovalRequest(request: InsertApprovalRequest): Promise<ApprovalRequest>;
+  updateApprovalRequest(id: number, status: string, approvedById: number, reason?: string): Promise<ApprovalRequest | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -50,12 +58,14 @@ export class MemStorage implements IStorage {
   private forms: Map<number, Form>;
   private dataSources: Map<number, DataSource>;
   private formSubmissions: Map<number, FormSubmission>;
+  private approvalRequests: Map<number, ApprovalRequest>;
   
   private userCurrentId: number;
   private applicationCurrentId: number;
   private formCurrentId: number;
   private dataSourceCurrentId: number;
   private formSubmissionCurrentId: number;
+  private approvalRequestCurrentId: number;
 
   constructor() {
     this.users = new Map();
@@ -63,12 +73,14 @@ export class MemStorage implements IStorage {
     this.forms = new Map();
     this.dataSources = new Map();
     this.formSubmissions = new Map();
+    this.approvalRequests = new Map();
     
     this.userCurrentId = 1;
     this.applicationCurrentId = 1;
     this.formCurrentId = 1;
     this.dataSourceCurrentId = 1;
     this.formSubmissionCurrentId = 1;
+    this.approvalRequestCurrentId = 1;
     
     // Only initialize default admin user, no default applications
     this.initializeDefaultUsers();
@@ -289,6 +301,54 @@ export class MemStorage implements IStorage {
     this.formSubmissions.set(id, submission);
     return submission;
   }
+
+  // Approval Request methods
+  async getApprovalRequests(): Promise<ApprovalRequest[]> {
+    return Array.from(this.approvalRequests.values());
+  }
+
+  async getApprovalRequestsByUser(userId: number): Promise<ApprovalRequest[]> {
+    return Array.from(this.approvalRequests.values())
+      .filter(request => request.requesterId === userId);
+  }
+
+  async getPendingApprovalRequests(): Promise<ApprovalRequest[]> {
+    return Array.from(this.approvalRequests.values())
+      .filter(request => request.status === "pending");
+  }
+
+  async createApprovalRequest(insertRequest: InsertApprovalRequest): Promise<ApprovalRequest> {
+    const id = this.approvalRequestCurrentId++;
+    const now = new Date();
+    const request: ApprovalRequest = {
+      id,
+      formSubmissionId: insertRequest.formSubmissionId,
+      requesterId: insertRequest.requesterId,
+      status: "pending",
+      reason: insertRequest.reason || null,
+      approvedById: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.approvalRequests.set(id, request);
+    return request;
+  }
+
+  async updateApprovalRequest(id: number, status: string, approvedById: number, reason?: string): Promise<ApprovalRequest | undefined> {
+    const request = this.approvalRequests.get(id);
+    if (!request) return undefined;
+    
+    const updatedRequest: ApprovalRequest = {
+      ...request,
+      status,
+      approvedById,
+      reason: reason || request.reason,
+      updatedAt: new Date()
+    };
+    
+    this.approvalRequests.set(id, updatedRequest);
+    return updatedRequest;
+  }
 }
 
 // Database storage implementation
@@ -454,6 +514,52 @@ export class DatabaseStorage implements IStorage {
       .values(insertSubmission)
       .returning();
     return submission;
+  }
+
+  // Approval Request methods
+  async getApprovalRequests(): Promise<ApprovalRequest[]> {
+    return db.select().from(approvalRequests);
+  }
+
+  async getApprovalRequestsByUser(userId: number): Promise<ApprovalRequest[]> {
+    return db
+      .select()
+      .from(approvalRequests)
+      .where(eq(approvalRequests.requesterId, userId));
+  }
+
+  async getPendingApprovalRequests(): Promise<ApprovalRequest[]> {
+    return db
+      .select()
+      .from(approvalRequests)
+      .where(eq(approvalRequests.status, "pending"));
+  }
+
+  async createApprovalRequest(insertRequest: InsertApprovalRequest): Promise<ApprovalRequest> {
+    const [request] = await db
+      .insert(approvalRequests)
+      .values({
+        ...insertRequest,
+        status: "pending",
+        approvedById: null
+      })
+      .returning();
+    return request;
+  }
+
+  async updateApprovalRequest(id: number, status: string, approvedById: number, reason?: string): Promise<ApprovalRequest | undefined> {
+    const [updatedRequest] = await db
+      .update(approvalRequests)
+      .set({ 
+        status, 
+        approvedById,
+        reason: reason || undefined,
+        updatedAt: new Date()
+      })
+      .where(eq(approvalRequests.id, id))
+      .returning();
+    
+    return updatedRequest || undefined;
   }
 }
 
