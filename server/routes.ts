@@ -752,6 +752,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (type === 'excel') {
         // Handle OneDrive/SharePoint Excel file connection
         const { fileUrl } = config || {};
+        const axios = require('axios');
+        const XLSX = require('xlsx');
         
         if (!fileUrl) {
           return res.status(400).json({
@@ -760,27 +762,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        // In a real implementation, this would verify the Excel file is accessible and parse columns
-        // Generate sample Excel columns as fields
-        const sampleFields = [
-          { name: 'Column1', type: 'text', selected: true },
-          { name: 'Column2', type: 'text', selected: true },
-          { name: 'Column3', type: 'number', selected: true },
-          { name: 'Column4', type: 'datetime', selected: false },
-          { name: 'Column5', type: 'number', selected: false },
-          { name: 'Column6', type: 'text', selected: false },
-          { name: 'Column7', type: 'text', selected: false },
-          { name: 'Column8', type: 'text', selected: false },
-        ];
-        
-        res.json({
-          success: true,
-          message: 'Excel file connection successful',
-          info: {
-            fileUrl
-          },
-          fields: sampleFields
-        });
+        try {
+          // Fetch the Excel file from the provided URL
+          console.log(`Fetching Excel file from URL: ${fileUrl}`);
+          const response = await axios.get(fileUrl, {
+            responseType: 'arraybuffer',
+            timeout: 10000 // 10 second timeout
+          });
+          
+          // Parse the Excel file data
+          const workbook = XLSX.read(response.data, { type: 'buffer' });
+          
+          // Get the first worksheet
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          // Convert the worksheet to JSON
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          
+          if (jsonData.length === 0) {
+            return res.status(400).json({
+              success: false,
+              message: 'Excel file is empty or could not be parsed correctly'
+            });
+          }
+          
+          // Assume the first row contains headers/column names
+          const headers = jsonData[0];
+          console.log('Excel headers found:', headers);
+          
+          // Determine data types by checking the second row (if available)
+          const dataRow = jsonData.length > 1 ? jsonData[1] : null;
+          
+          // Create field definitions based on the headers
+          const excelFields = headers.map((header: string, index: number) => {
+            // Infer data type
+            let dataType = 'text'; // Default type
+            
+            if (dataRow) {
+              const value = dataRow[index];
+              if (typeof value === 'number') {
+                dataType = 'number';
+              } else if (value instanceof Date) {
+                dataType = 'datetime';
+              } else if (typeof value === 'boolean') {
+                dataType = 'boolean';
+              }
+            }
+            
+            return {
+              name: header,
+              type: dataType,
+              selected: true // Mark all columns as selected by default
+            };
+          });
+          
+          res.json({
+            success: true,
+            message: 'Excel file connection successful',
+            info: {
+              fileUrl,
+              sheetName: firstSheetName,
+              rowCount: jsonData.length
+            },
+            fields: excelFields
+          });
+        } catch (error: any) {
+          console.error('Excel file processing error:', error);
+          res.status(400).json({
+            success: false,
+            message: `Failed to process Excel file: ${error.message || 'Unknown error'}`
+          });
+        }
       } else {
         res.status(400).json({
           success: false,

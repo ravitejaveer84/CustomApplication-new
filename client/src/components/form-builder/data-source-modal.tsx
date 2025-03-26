@@ -52,63 +52,166 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
       // Process fields from the connection test response
       const type = form.getValues('type');
       
-      let sampleFields: DataField[] = [];
+      let dataFields: DataField[] = [];
       
-      if (type === 'database') {
-        sampleFields = [
-          { name: 'id', type: 'number', selected: true },
-          { name: 'name', type: 'text', selected: true },
-          { name: 'email', type: 'text', selected: true },
-          { name: 'created_date', type: 'datetime', selected: false },
-          { name: 'status', type: 'text', selected: false },
-          { name: 'department', type: 'text', selected: false },
-          { name: 'manager_id', type: 'number', selected: false },
-        ];
-      } else if (type === 'sharepoint') {
-        sampleFields = [
-          { name: 'ID', type: 'number', selected: true },
-          { name: 'Title', type: 'text', selected: true },
-          { name: 'Modified', type: 'datetime', selected: true },
-          { name: 'Created', type: 'datetime', selected: false },
-          { name: 'Author', type: 'text', selected: false },
-          { name: 'Category', type: 'text', selected: false },
-          { name: 'Status', type: 'text', selected: false },
-        ];
-      } else if (type === 'excel') {
-        sampleFields = [
-          { name: 'Column1', type: 'text', selected: true },
-          { name: 'Column2', type: 'text', selected: true },
-          { name: 'Column3', type: 'number', selected: true },
-          { name: 'Column4', type: 'datetime', selected: false },
-          { name: 'Column5', type: 'text', selected: false },
-          { name: 'Column6', type: 'number', selected: false },
-        ];
+      if (connectionTestResponse.fields) {
+        // If the API returns fields directly (for SharePoint and Excel)
+        if (Array.isArray(connectionTestResponse.fields)) {
+          dataFields = connectionTestResponse.fields;
+        } 
+        // If it returns fields grouped by table (for database)
+        else if (typeof connectionTestResponse.fields === 'object') {
+          const tables = Object.keys(connectionTestResponse.fields);
+          if (tables.length > 0) {
+            // Use the first table's fields
+            const firstTable = tables[0];
+            dataFields = connectionTestResponse.fields[firstTable] || [];
+          }
+        }
+      } else {
+        // Fallback sample fields if the API doesn't return any
+        if (type === 'database') {
+          dataFields = [
+            { name: 'id', type: 'number', selected: true },
+            { name: 'name', type: 'text', selected: true },
+            { name: 'email', type: 'text', selected: true },
+            { name: 'created_date', type: 'datetime', selected: false },
+            { name: 'status', type: 'text', selected: false },
+          ];
+        } else if (type === 'sharepoint') {
+          dataFields = [
+            { name: 'ID', type: 'number', selected: true },
+            { name: 'Title', type: 'text', selected: true },
+            { name: 'Modified', type: 'datetime', selected: true },
+            { name: 'Created', type: 'datetime', selected: false },
+            { name: 'Author', type: 'text', selected: false },
+          ];
+        } else if (type === 'excel') {
+          dataFields = [
+            { name: 'Column1', type: 'text', selected: true },
+            { name: 'Column2', type: 'text', selected: true },
+            { name: 'Column3', type: 'number', selected: true },
+            { name: 'Column4', type: 'datetime', selected: false },
+          ];
+        }
       }
       
-      setFields(sampleFields);
+      // Set fields and generate preview data
+      setFields(dataFields);
+      generateSamplePreviewData(dataFields);
       
-      // Also generate sample preview data
-      generateSamplePreviewData(sampleFields);
+      console.log('Data source connection response:', connectionTestResponse);
+      console.log('Processed fields:', dataFields);
     }
-  }, [isConnectionTested]);
+  }, [isConnectionTested, connectionTestResponse]);
   
   const generateSamplePreviewData = (fields: DataField[]) => {
-    // Generate 5 rows of sample data
+    // Generate 5 rows of more realistic sample data
     const data = [];
+    
+    // Sample data generators for different field types
+    const generateTextValue = (fieldName: string, index: number) => {
+      // Generate sample text based on common field names
+      const fieldNameLower = fieldName.toLowerCase();
+      
+      if (fieldNameLower.includes('name') || fieldNameLower === 'title') {
+        const names = ['John Smith', 'Jane Doe', 'Alex Johnson', 'Maria Garcia', 'Wei Zhang', 
+                       'Sarah Wilson', 'Michael Brown', 'Emma Davis', 'Raj Patel', 'Olivia Miller'];
+        return names[index % names.length];
+      } 
+      else if (fieldNameLower.includes('email')) {
+        const emails = ['john@example.com', 'jane.doe@company.com', 'alex.j@mail.net', 
+                       'maria.garcia@org.co', 'wei.zhang@tech.io'];
+        return emails[index % emails.length];
+      }
+      else if (fieldNameLower.includes('address')) {
+        const addresses = ['123 Main St', '456 Oak Ave', '789 Pine Rd', '101 River Ln', '555 Beach Blvd'];
+        return addresses[index % addresses.length];
+      }
+      else if (fieldNameLower.includes('status')) {
+        const statuses = ['Active', 'Pending', 'Completed', 'On Hold', 'Cancelled'];
+        return statuses[index % statuses.length];
+      }
+      else if (fieldNameLower.includes('department') || fieldNameLower.includes('category')) {
+        const departments = ['Sales', 'Marketing', 'Engineering', 'HR', 'Finance'];
+        return departments[index % departments.length];
+      }
+      else if (fieldNameLower.includes('phone')) {
+        const phones = ['(555) 123-4567', '(555) 987-6543', '(555) 456-7890', '(555) 321-0987', '(555) 789-0123'];
+        return phones[index % phones.length];
+      }
+      else {
+        // Generic fallback for other text fields
+        return `Sample ${fieldName} ${index+1}`;
+      }
+    };
+    
+    const generateNumberValue = (fieldName: string, index: number) => {
+      const fieldNameLower = fieldName.toLowerCase();
+      
+      if (fieldNameLower.includes('id')) {
+        return index + 1;
+      }
+      else if (fieldNameLower.includes('age')) {
+        return 25 + (index % 40); // Ages between 25-64
+      }
+      else if (fieldNameLower.includes('price') || fieldNameLower.includes('cost')) {
+        return (19.99 + (index * 10)).toFixed(2);
+      }
+      else if (fieldNameLower.includes('quantity') || fieldNameLower.includes('count')) {
+        return 1 + (index * 3);
+      }
+      else {
+        return Math.floor(Math.random() * 1000);
+      }
+    };
+    
+    const generateDateValue = (fieldName: string, index: number) => {
+      const fieldNameLower = fieldName.toLowerCase();
+      const today = new Date();
+      
+      if (fieldNameLower.includes('created') || fieldNameLower.includes('start')) {
+        // Dates in the past
+        const date = new Date(today);
+        date.setDate(today.getDate() - (30 + index * 5));
+        return date.toISOString().substring(0, 10);
+      }
+      else if (fieldNameLower.includes('updated') || fieldNameLower.includes('modified')) {
+        // Recent dates
+        const date = new Date(today);
+        date.setDate(today.getDate() - (index * 3));
+        return date.toISOString().substring(0, 10);
+      }
+      else if (fieldNameLower.includes('due') || fieldNameLower.includes('end')) {
+        // Dates in the future
+        const date = new Date(today);
+        date.setDate(today.getDate() + (7 + index * 7));
+        return date.toISOString().substring(0, 10);
+      }
+      else {
+        return today.toISOString().substring(0, 10);
+      }
+    };
+    
+    // Generate the rows
     for (let i = 0; i < 5; i++) {
       const row: Record<string, any> = {};
       fields.forEach(field => {
         if (field.type === 'number') {
-          row[field.name] = Math.floor(Math.random() * 1000);
+          row[field.name] = generateNumberValue(field.name, i);
         } else if (field.type === 'datetime') {
-          row[field.name] = new Date().toISOString().substring(0, 10);
+          row[field.name] = generateDateValue(field.name, i);
+        } else if (field.type === 'boolean') {
+          row[field.name] = i % 2 === 0;
         } else {
-          row[field.name] = `Sample ${field.name} ${i+1}`;
+          row[field.name] = generateTextValue(field.name, i);
         }
       });
       data.push(row);
     }
     setPreviewData(data);
+    
+    console.log('Generated preview data:', data);
   };
   
   const toggleFieldSelection = (index: number) => {
