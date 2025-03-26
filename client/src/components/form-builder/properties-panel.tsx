@@ -13,8 +13,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Code } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { ActionEditor } from "./action-editor";
 
 interface PropertiesPanelProps {
   selectedElement: FormElement | null;
@@ -31,7 +32,7 @@ interface DataSource {
 }
 
 export function PropertiesPanel({ selectedElement, onElementUpdate }: PropertiesPanelProps) {
-  const [activeTab, setActiveTab] = useState<"basic" | "validation" | "data" | "advanced">("basic");
+  const [activeTab, setActiveTab] = useState<"basic" | "validation" | "data" | "advanced" | "actions">("basic");
   
   const form = useForm<FormElement>({
     defaultValues: selectedElement || {
@@ -659,6 +660,14 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
           >
             Data
           </button>
+          {selectedElement.type === "button" && (
+            <button 
+              className={`px-3 py-2 text-sm font-medium ${activeTab === "actions" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`}
+              onClick={() => setActiveTab("actions")}
+            >
+              Actions
+            </button>
+          )}
           <button 
             className={`px-3 py-2 text-sm font-medium ${activeTab === "advanced" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`}
             onClick={() => setActiveTab("advanced")}
@@ -674,6 +683,13 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
             {activeTab === "basic" && renderBasicProperties()}
             {activeTab === "validation" && renderValidationProperties()}
             {activeTab === "data" && renderDataMappingProperties()}
+            {activeTab === "actions" && selectedElement.type === "button" && (
+              <ActionEditor 
+                element={selectedElement} 
+                onUpdate={onElementUpdate} 
+                formElements={form.getValues().elements || []}
+              />
+            )}
             {activeTab === "advanced" && renderAdvancedProperties()}
           </form>
         </Form>

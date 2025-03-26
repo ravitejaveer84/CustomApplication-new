@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FormElement } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
-import { InfoCircle, Code, Database, Filter, RefreshCw } from "lucide-react";
+import { Info, Code, Database, Filter, RefreshCw } from "lucide-react";
 
 interface ActionEditorProps {
   element: FormElement;
@@ -51,7 +51,7 @@ export function ActionEditor({ element, onUpdate, formElements }: ActionEditorPr
   return (
     <div className="space-y-4">
       <div className="bg-blue-50 p-3 rounded-md text-sm mb-4 flex items-start">
-        <InfoCircle className="text-blue-500 mr-2 h-5 w-5 mt-0.5 shrink-0" />
+        <Info className="text-blue-500 mr-2 h-5 w-5 mt-0.5 shrink-0" />
         <p>Configure what happens when this button is clicked. You can perform database operations, navigate to other pages, or execute custom logic.</p>
       </div>
       
@@ -197,7 +197,7 @@ export function ActionEditor({ element, onUpdate, formElements }: ActionEditorPr
                               const currentFields = actionConfig.filterFields || [];
                               const newFields = checked 
                                 ? [...currentFields, field.id]
-                                : currentFields.filter(id => id !== field.id);
+                                : currentFields.filter((currentId: string) => currentId !== field.id);
                               handleActionConfigChange("filterFields", newFields);
                             }} 
                           />
