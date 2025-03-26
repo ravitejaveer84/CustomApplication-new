@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApprovalButton } from "./approval-button";
 import { DataTable } from "./data-table";
+import { apiRequest } from "@/lib/queryClient";
 
 interface FormRendererProps {
   formId: number;
@@ -34,7 +35,7 @@ export function FormRenderer({
     const initialData: Record<string, any> = {};
     
     formElements.forEach(element => {
-      if (element.name && element.type !== "section" && element.type !== "column" && element.type !== "divider") {
+      if (element.name && element.type !== "section" && element.type !== "column" && element.type !== "divider" && element.type !== "datatable") {
         // Use default values from props if available, otherwise use element default
         initialData[element.name] = defaultValues[element.name] !== undefined 
           ? defaultValues[element.name] 
@@ -199,6 +200,72 @@ export function FormRenderer({
         
       case "dropdown":
       case "combobox":
+        // Add state for dropdown options from data source
+        const [dropdownOptions, setDropdownOptions] = useState<{value: string, label: string}[]>([]);
+        const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+        
+        // Fetch dropdown options from data source if configured
+        useEffect(() => {
+          if (element.dataSource?.id && element.dataSource?.field) {
+            setIsLoadingOptions(true);
+            
+            const fetchDropdownData = async () => {
+              try {
+                const response = await apiRequest<any[]>(
+                  `/api/datasources/${element.dataSource!.id}/data`
+                );
+                
+                if (response && Array.isArray(response)) {
+                  // Extract unique values from the specified field
+                  const fieldValues = response
+                    .map(item => item[element.dataSource!.field])
+                    .filter(value => value !== null && value !== undefined);
+                  
+                  // Get unique values without using Set directly
+                  const uniqueValuesMap: Record<string, any> = {};
+                  fieldValues.forEach(value => {
+                    const valueKey = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                    uniqueValuesMap[valueKey] = value;
+                  });
+                  const uniqueValues = Object.values(uniqueValuesMap);
+                  
+                  // Sort values if they are strings or numbers
+                  if (uniqueValues.length > 0 && 
+                      (typeof uniqueValues[0] === 'string' || 
+                       typeof uniqueValues[0] === 'number')) {
+                    uniqueValues.sort((a, b) => {
+                      if (typeof a === 'number' && typeof b === 'number') {
+                        return a - b;
+                      }
+                      return String(a).localeCompare(String(b));
+                    });
+                  }
+                  
+                  // Format as options for dropdown
+                  const options = uniqueValues.map(value => ({
+                    value: String(value),
+                    label: String(value)
+                  }));
+                  
+                  setDropdownOptions(options);
+                  console.log(`Loaded ${options.length} unique options for dropdown`);
+                }
+              } catch (err) {
+                console.error("Error fetching dropdown options:", err);
+              } finally {
+                setIsLoadingOptions(false);
+              }
+            };
+            
+            fetchDropdownData();
+          }
+        }, [element.dataSource?.id, element.dataSource?.field]);
+        
+        // Determine which options to display
+        const displayOptions = element.dataSource?.id && dropdownOptions.length > 0 
+          ? dropdownOptions 
+          : element.options || [];
+        
         return (
           <div className="space-y-2">
             <Label htmlFor={name} className="font-medium">
@@ -207,16 +274,25 @@ export function FormRenderer({
             <Select 
               value={String(formData[name] || "")}
               onValueChange={(value) => handleChange(name, value)}
+              disabled={isLoadingOptions}
             >
               <SelectTrigger className={showError ? "border-red-500" : ""}>
-                <SelectValue placeholder={element.placeholder || "Select..."} />
+                <SelectValue placeholder={isLoadingOptions 
+                  ? "Loading options..." 
+                  : element.placeholder || "Select..."} 
+                />
               </SelectTrigger>
               <SelectContent>
-                {element.options?.map((option: any, index: number) => (
+                {displayOptions.map((option: any, index: number) => (
                   <SelectItem key={index} value={option.value}>
                     {option.label}
                   </SelectItem>
                 ))}
+                {displayOptions.length === 0 && !isLoadingOptions && (
+                  <div className="px-2 py-1 text-sm text-muted-foreground">
+                    No options available
+                  </div>
+                )}
               </SelectContent>
             </Select>
             {helpText && <p className="text-sm text-gray-500">{helpText}</p>}

@@ -38,7 +38,8 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
   
   // Fetch data from data source
   useEffect(() => {
-    if (!element.dataSourceId) {
+    // Make sure we have a data source connected to the element
+    if (!element.dataSource?.id) {
       setLoading(false);
       setError("No data source connected");
       return;
@@ -47,11 +48,14 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
     const fetchData = async () => {
       try {
         setLoading(true);
+        console.log("Fetching data from source:", element.dataSource.id);
+        
         const response = await apiRequest<any[]>(
-          `/api/datasources/${element.dataSourceId}/data`
+          `/api/datasources/${element.dataSource.id}/data`
         );
         
         if (response && Array.isArray(response)) {
+          console.log(`Received ${response.length} records from data source`);
           setData(response);
           setFilteredData(response);
         } else {
@@ -70,7 +74,7 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
     };
 
     fetchData();
-  }, [element.dataSourceId]);
+  }, [element.dataSource?.id]);
 
   // Define column type for better type safety
   type TableColumn = {
