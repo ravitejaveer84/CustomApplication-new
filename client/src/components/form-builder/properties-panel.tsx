@@ -561,27 +561,31 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
             Data Source
           </label>
           
-          <select 
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm 
-                      ring-offset-background file:border-0 file:bg-transparent file:text-sm 
-                      file:font-medium placeholder:text-muted-foreground focus-visible:outline-none 
-                      focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 
-                      disabled:cursor-not-allowed disabled:opacity-50"
-            value={selectedElement.dataSource?.id || ""}
-            onChange={(e) => {
-              const value = e.target.value;
+          <Select
+            value={selectedElement.dataSource?.id?.toString() || ""}
+            onValueChange={(value) => {
               if (value) {
                 selectDataSource(parseInt(value));
               }
             }}
           >
-            <option value="">Select data source</option>
-            {dataSources && dataSources.map((source) => (
-              <option key={source.id} value={source.id}>
-                {source.name} ({source.type})
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select data source" />
+            </SelectTrigger>
+            <SelectContent>
+              {loadingDataSources ? (
+                <SelectItem value="" disabled>Loading data sources...</SelectItem>
+              ) : !dataSources || dataSources.length === 0 ? (
+                <SelectItem value="" disabled>No data sources available</SelectItem>
+              ) : (
+                dataSources.map((source) => (
+                  <SelectItem key={source.id} value={source.id.toString()}>
+                    {source.name} ({source.type})
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
@@ -596,42 +600,40 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
           </div>
           
           {selectedElement.dataSource?.id ? (
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm 
-                        ring-offset-background file:border-0 file:bg-transparent file:text-sm 
-                        file:font-medium placeholder:text-muted-foreground focus-visible:outline-none 
-                        focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 
-                        disabled:cursor-not-allowed disabled:opacity-50"
+            <Select
               value={selectedElement.dataSource?.field || ""}
-              onChange={(e) => selectField(e.target.value)}
+              onValueChange={(value) => selectField(value)}
             >
-              <option value="">Select field</option>
-              {activeSourceFields.length === 0 ? (
-                <option value="" disabled>No fields available</option>
-              ) : (
-                activeSourceFields.map((field) => (
-                  <option key={field.name} value={field.name}>
-                    {field.name} ({field.type})
-                  </option>
-                ))
-              )}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select field" />
+              </SelectTrigger>
+              <SelectContent>
+                {activeSourceFields.length === 0 ? (
+                  <SelectItem value="" disabled>No fields available</SelectItem>
+                ) : (
+                  activeSourceFields.map((field: { name: string; type: string }) => (
+                    <SelectItem key={field.name} value={field.name}>
+                      {field.name} ({field.type})
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
           ) : (
             <div className="text-sm text-gray-500">Please select a data source first</div>
           )}
           
           {selectedElement.dataSource?.id && (
-            <button 
+            <Button 
               type="button"
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium 
-                        ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 
-                        focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none 
-                        disabled:opacity-50 border border-input bg-background hover:bg-accent 
-                        hover:text-accent-foreground h-8 px-3 mt-2"
+              variant="outline"
+              size="sm"
+              className="mt-2"
               onClick={() => refetchDataSource()}
             >
+              <RefreshCw className="mr-2 h-4 w-4" />
               Refresh Fields
-            </button>
+            </Button>
           )}
         </div>
         
