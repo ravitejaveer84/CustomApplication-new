@@ -6,6 +6,7 @@ import { FormElementsList } from "@/components/form-builder/form-elements-list";
 import { FormCanvas } from "@/components/form-builder/form-canvas";
 import { PropertiesPanel } from "@/components/form-builder/properties-panel";
 import { DataSourceModal } from "@/components/form-builder/data-source-modal";
+import { FormRenderer } from "@/components/form-viewer/form-renderer";
 import { Button } from "@/components/ui/button";
 import { Database, ArrowLeft, Loader2 } from "lucide-react";
 import { FormElement, Form, Application } from "@shared/schema";
@@ -258,32 +259,18 @@ export default function FormBuilder() {
                   <p>This form has no elements yet. Add some elements to preview.</p>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {formElements.map(element => {
-                    // Render each element similar to FormCanvas but with actual input functionality
-                    // This is a simplified version - a real implementation would need to handle
-                    // all element types, validation, etc.
-                    return (
-                      <div key={element.id} className="mb-4">
-                        {element.type === 'text' && (
-                          <div>
-                            <label className="block text-sm font-medium mb-1">
-                              {element.label} {element.required && <span className="text-red-500">*</span>}
-                            </label>
-                            <input
-                              type="text"
-                              className="w-full p-2 border border-gray-300 rounded"
-                              placeholder={element.placeholder}
-                            />
-                            {element.helpText && <p className="text-xs text-gray-500 mt-1">{element.helpText}</p>}
-                          </div>
-                        )}
-                        
-                        {/* Include other element types as needed */}
-                      </div>
-                    );
-                  })}
-                </div>
+                <FormRenderer 
+                  formId={savedFormId || 0}
+                  formElements={formElements}
+                  defaultValues={{}}
+                  onSubmit={(formData) => {
+                    console.log("Form submitted with data:", formData);
+                    toast({
+                      title: "Form Preview",
+                      description: "Form submitted successfully (preview mode)",
+                    });
+                  }}
+                />
               )}
             </div>
           </div>
