@@ -73,9 +73,8 @@ export function ApprovalButton({
   // Handle submit form request
   const submitFormMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest({
+      return apiRequest(`/api/forms/${formId}/submissions`, {
         method: "POST",
-        url: `/api/forms/${formId}/submissions`,
         data: { formData }
       });
     },
@@ -100,9 +99,8 @@ export function ApprovalButton({
   // Handle approval request
   const requestApprovalMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest({
+      return apiRequest(`/api/approval-requests`, {
         method: "POST",
-        url: `/api/approval-requests`,
         data: {
           formId,
           formData,
@@ -131,14 +129,16 @@ export function ApprovalButton({
   // Handle approval response (approve or reject)
   const respondToApprovalMutation = useMutation({
     mutationFn: async ({ submissionId, action }: { submissionId: number, action: "approve" | "reject" }) => {
-      return apiRequest({
+      const url = `/api/approval-requests/${submissionId}`;
+      const data = {
+        status: action === "approve" ? "approved" : "rejected",
+        approvedById: user?.id,
+        reason: buttonAction.requireReason ? reason : undefined
+      };
+      
+      return apiRequest(url, {
         method: "PATCH",
-        url: `/api/approval-requests/${submissionId}`,
-        data: {
-          status: action === "approve" ? "approved" : "rejected",
-          approvedById: user?.id,
-          reason: buttonAction.requireReason ? reason : undefined
-        }
+        data
       });
     },
     onSuccess: () => {

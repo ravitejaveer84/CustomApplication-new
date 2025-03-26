@@ -1,10 +1,13 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApprovalRequestDialog } from "@/components/approval-request-dialog";
+import { FormRenderer } from "@/components/form-viewer";
+import { FormElement } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 
@@ -18,9 +21,32 @@ export function FormSubmitApproval({ formId, formData, onSuccess }: FormSubmitAp
   const [submitted, setSubmitted] = useState(false);
   const [submissionId, setSubmissionId] = useState<number | null>(null);
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
   
+  // Fetch form definition including any approval buttons
+  const { data: formDefinition } = useQuery({
+    queryKey: [`/api/forms/${formId}`],
+    enabled: !!formId
+  });
+  
+  // Check if form has any approval buttons defined
+  const hasApprovalButtons = formDefinition && formDefinition.elements ? 
+    formDefinition.elements.some((element: FormElement) => 
+      element.type === "button" && 
+      element.buttonAction?.type && 
+      ["approve", "reject", "request-approval"].includes(element.buttonAction.type)
+    ) : false;
+  
+  // Extract only the approval buttons for rendering
+  const approvalButtons = formDefinition && formDefinition.elements ? 
+    formDefinition.elements.filter((element: FormElement) => 
+      element.type === "button" && 
+      element.buttonAction?.type && 
+      ["approve", "reject", "request-approval"].includes(element.buttonAction.type)
+    ) : [];
+  
+  // Traditional form submission (without custom approval)
   const submitFormMutation = useMutation({
     mutationFn: async () => {
       return apiRequest<{ id: number }>(`/api/forms/${formId}/submissions`, {
@@ -61,6 +87,52 @@ export function FormSubmitApproval({ formId, formData, onSuccess }: FormSubmitAp
     }
   };
   
+  // If form has custom approval buttons, use those
+  if (hasApprovalButtons) {
+    // For submission with approval buttons
+    return (
+      <Card className="mt-6">
+        <CardContent className="pt-6">
+          <div className="flex flex-col space-y-4">
+            <p className="text-sm text-gray-500">
+              Review your submission before proceeding.
+            </p>
+            
+            {/* Render any approval buttons that were defined in the form */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {approvalButtons.map((button: FormElement) => (
+                <FormRenderer
+                  key={button.id}
+                  formId={formId}
+                  formElements={[button]}
+                  defaultValues={{ 
+                    ...formData,
+                    submissionId: submissionId // Pass the submission ID if available
+                  }}
+                  onSubmit={handleApprovalSuccess}
+                />
+              ))}
+              
+              {/* Default submit button if no request-approval buttons exist */}
+              {!approvalButtons.some(b => b.buttonAction?.type === "request-approval") && (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={submitFormMutation.isPending}
+                >
+                  {submitFormMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Submit Form
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Traditional submit/approval workflow (legacy support)
   if (!submitted) {
     return (
       <Card className="mt-6">
@@ -86,7 +158,7 @@ export function FormSubmitApproval({ formId, formData, onSuccess }: FormSubmitAp
     );
   }
   
-  // Show options after submission
+  // Show options after submission (legacy support)
   return (
     <Card className="mt-6">
       <CardContent className="pt-6">
