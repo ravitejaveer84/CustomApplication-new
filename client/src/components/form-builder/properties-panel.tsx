@@ -79,7 +79,8 @@ export function PropertiesPanel({
 
   const [activeDataSource, setActiveDataSource] = useState<any>(null);
   const [activeSourceFields, setActiveSourceFields] = useState<any[]>([]);
-  const [selectedDataSource, setSelectedDataSource] = useState<any>(null);
+  // Renamed to avoid conflict with other state variables
+  const [dataSourceState, setDataSourceState] = useState<any>(null);
 
   const form = useForm<FormElement>({
     defaultValues: selectedElement || {
@@ -102,8 +103,9 @@ export function PropertiesPanel({
       cssClass: "",
     },
   });
-
-  const { data: dataSources = [] } = useQuery<DataSource[]>({
+  
+  // Fetch all data sources - at component top level
+  const { data: availableDataSources = [] } = useQuery<DataSource[]>({
     queryKey: ["/api/datasources"],
     enabled: activeTab === "data",
   });
@@ -123,7 +125,7 @@ export function PropertiesPanel({
           console.error("Error parsing config:", e);
         }
       }
-      setSelectedDataSource(data);
+      setDataSourceState(data);
       return data;
     } catch (err) {
       console.error("Error fetching data source:", err);
@@ -135,7 +137,7 @@ export function PropertiesPanel({
     if (dataSourceId) {
       fetchDataSource(dataSourceId);
     } else {
-      setSelectedDataSource(null);
+      setDataSourceState(null);
     }
   }, [dataSourceId, fetchDataSource]);
 
@@ -628,41 +630,36 @@ export function PropertiesPanel({
     </div>
   );
   
-  const renderDataMappingProperties = () => {
-    // Fetch data sources for dropdown options
-    const { data: dataSources = [] } = useQuery<DataSource[]>({
-      queryKey: ["/api/datasources"],
-      staleTime: 10 * 60 * 1000, // 10 minutes
-    });
-
-    // Get selected data source for field options
-    const selectedDataSourceId = selectedElement.dataSourceId || selectedElement.dataSource?.id || null;
-    const { data: selectedDataSource } = useQuery({
-      queryKey: ["/api/datasources", selectedDataSourceId],
-      enabled: !!selectedDataSourceId,
-      staleTime: 10 * 60 * 1000,
-    });
-
-    // Handle change of data source
-    const handleDataSourceChange = (value: string) => {
-      if (value === "none") {
-        // Clear the data source
-        handleNestedFieldChange("dataSource.id", null);
-        handleNestedFieldChange("dataSource.field", "");
-        handleElementPropertyChange("dataSourceId", null);
-        handleElementPropertyChange("displayField", "");
-        handleElementPropertyChange("valueField", "");
-        return;
-      }
-
-      // Set the data source ID and clear the field as it needs to be reselected
-      const sourceId = parseInt(value);
-      handleNestedFieldChange("dataSource.id", sourceId);
+  // Get selected data source for field options - must be at component top level
+  const selectedDataSourceId = selectedElement.dataSourceId || selectedElement.dataSource?.id || null;
+  const { data: dataSourceDetails } = useQuery<DataSource>({
+    queryKey: ["/api/datasources", selectedDataSourceId],
+    enabled: !!selectedDataSourceId,
+    staleTime: 10 * 60 * 1000,
+  });
+  
+  // Handle change of data source - must be at component top level
+  const handleOptionsDataSourceChange = (value: string) => {
+    if (value === "none") {
+      // Clear the data source
+      handleNestedFieldChange("dataSource.id", null);
       handleNestedFieldChange("dataSource.field", "");
-      
-      // Also set new style property
-      handleElementPropertyChange("dataSourceId", sourceId);
-    };
+      handleElementPropertyChange("dataSourceId", null);
+      handleElementPropertyChange("displayField", "");
+      handleElementPropertyChange("valueField", "");
+      return;
+    }
+
+    // Set the data source ID and clear the field as it needs to be reselected
+    const sourceId = parseInt(value);
+    handleNestedFieldChange("dataSource.id", sourceId);
+    handleNestedFieldChange("dataSource.field", "");
+    
+    // Also set new style property
+    handleElementPropertyChange("dataSourceId", sourceId);
+  };
+  
+  const renderDataMappingProperties = () => {
     
     // For elements that support options (dropdown, radio, checkbox)
     const isOptionsElement = selectedElement.type === "dropdown" || 
@@ -700,7 +697,7 @@ export function PropertiesPanel({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
-              {dataSources.map((source) => (
+              {availableDataSources.map((source) => (
                 <SelectItem key={source.id} value={source.id.toString()}>
                   <div className="flex items-center">
                     <span>{source.name}</span>
@@ -712,7 +709,7 @@ export function PropertiesPanel({
               ))}
             </SelectContent>
           </Select>
-          {dataSources.length === 0 && (
+          {availableDataSources.length === 0 && (
             <p className="text-xs text-muted-foreground mt-1">
               No data sources available. Add data sources from the Data Sources page.
             </p>
