@@ -474,9 +474,23 @@ export function PropertiesPanel({
                 }}
               />
             </FormControl>
-            <FormLabel className="text-sm font-medium cursor-pointer">
-              Required
-            </FormLabel>
+            <div className="flex items-center space-x-2">
+              <FormLabel className="text-sm font-medium cursor-pointer">
+                Required
+              </FormLabel>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                      <HelpCircle className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>Make this field mandatory. Form submission will be prevented if this field is empty.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </FormItem>
         )}
       />
@@ -636,7 +650,7 @@ export function PropertiesPanel({
                 placeholder="Error message for invalid input"
                 onChange={(e) => {
                   field.onChange(e);
-                  handleElementPropertyChange("validation.errorMessage", e.target.value);
+                  handleNestedFieldChange("validation.errorMessage", e.target.value);
                 }}
               />
             </FormControl>
@@ -654,7 +668,21 @@ export function PropertiesPanel({
         name="cssClass"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>CSS Class</FormLabel>
+            <div className="flex items-center space-x-2">
+              <FormLabel>CSS Class</FormLabel>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                      <HelpCircle className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>Add custom CSS classes to style this element. Multiple classes can be separated by spaces.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <FormControl>
               <Input
                 {...field}
@@ -671,7 +699,21 @@ export function PropertiesPanel({
 
       {/* Visibility Condition */}
       <div>
-        <FormLabel>Visibility Condition</FormLabel>
+        <div className="flex items-center space-x-2 mb-1">
+          <FormLabel>Visibility Condition</FormLabel>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Control when this field should be shown based on the value of another field.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <div className="flex items-center space-x-2 mt-1">
           <Select
             value={selectedElement.visibilityCondition?.field || ""}
