@@ -35,6 +35,10 @@ interface DataSource {
 export function PropertiesPanel({ selectedElement, onElementUpdate }: PropertiesPanelProps) {
   const [activeTab, setActiveTab] = useState<"basic" | "validation" | "data" | "advanced" | "actions">("basic");
   
+  // State for holding selected data source details with fields
+  const [activeDataSource, setActiveDataSource] = useState<any>(null);
+  const [activeSourceFields, setActiveSourceFields] = useState<any[]>([]);
+  
   const form = useForm<FormElement>({
     defaultValues: selectedElement || {
       id: "",
@@ -184,7 +188,7 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
       
       // If we have fields and the current field mapping is empty, suggest the first selected field
       if (selectedDataSource.fields?.length > 0 && !selectedElement.dataSource?.field) {
-        const selectedFields = selectedDataSource.fields.filter(f => f.selected);
+        const selectedFields = selectedDataSource.fields.filter((f: any) => f.selected);
         if (selectedFields.length > 0) {
           // Suggest the first selected field
           const suggestedField = selectedFields[0].name;
@@ -203,6 +207,35 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
       form.reset(selectedElement);
     }
   }, [selectedElement, form]);
+  
+  // Direct API call to get data source with fields when id changes
+  useEffect(() => {
+    if (selectedElement?.dataSource?.id) {
+      const fetchSourceData = async () => {
+        try {
+          const response = await fetch(`/api/datasources/${selectedElement.dataSource.id}`);
+          if (!response.ok) throw new Error('Failed to fetch data source');
+          
+          const data = await response.json();
+          console.log("Fetched data source data:", data);
+          
+          setActiveDataSource(data);
+          // Ensure fields is an array
+          const fields = Array.isArray(data.fields) ? data.fields : [];
+          setActiveSourceFields(fields);
+        } catch (error) {
+          console.error("Error fetching data source:", error);
+          setActiveDataSource(null);
+          setActiveSourceFields([]);
+        }
+      };
+      
+      fetchSourceData();
+    } else {
+      setActiveDataSource(null);
+      setActiveSourceFields([]);
+    }
+  }, [selectedElement?.dataSource?.id]);
   
   if (!selectedElement) {
     return (
@@ -480,39 +513,6 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
       />
     </div>
   );
-  
-  // State for holding selected data source details with fields
-  const [activeDataSource, setActiveDataSource] = useState<any>(null);
-  const [activeSourceFields, setActiveSourceFields] = useState<any[]>([]);
-  
-  // Direct API call to get data source with fields when id changes
-  useEffect(() => {
-    if (selectedElement?.dataSource?.id) {
-      const fetchSourceData = async () => {
-        try {
-          const response = await fetch(`/api/datasources/${selectedElement.dataSource.id}`);
-          if (!response.ok) throw new Error('Failed to fetch data source');
-          
-          const data = await response.json();
-          console.log("Fetched data source data:", data);
-          
-          setActiveDataSource(data);
-          // Ensure fields is an array
-          const fields = Array.isArray(data.fields) ? data.fields : [];
-          setActiveSourceFields(fields);
-        } catch (error) {
-          console.error("Error fetching data source:", error);
-          setActiveDataSource(null);
-          setActiveSourceFields([]);
-        }
-      };
-      
-      fetchSourceData();
-    } else {
-      setActiveDataSource(null);
-      setActiveSourceFields([]);
-    }
-  }, [selectedElement?.dataSource?.id]);
   
   const renderDataMappingProperties = () => {
     // Debug data source and fields
