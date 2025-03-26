@@ -855,37 +855,39 @@ export function PropertiesPanel({
             <Select
               value={selectedElement.optionsSource || "static"}
               onValueChange={(value) => {
-                // Start with a fresh update
-                const updates: Record<string, any> = {
-                  optionsSource: value
-                };
+                console.log("Changing dropdown options source from", selectedElement.optionsSource, "to", value);
+                
+                // First set the option source type
+                handleElementPropertyChange("optionsSource", value);
                 
                 if (value === "dataSource") {
                   // When switching to data source mode:
-                  // Clear static options completely and force empty array
-                  updates.options = [];
-                  // Don't reset dataSourceId if already present
+                  // Clear static options and add data source fields
+                  handleElementPropertyChange("options", []);
+                  
+                  // Initialize data source fields if empty
+                  if (!selectedElement.dataSourceId) {
+                    console.log("No datasource ID found, resetting fields");
+                    // We'll set these to empty/null so the user can select them
+                    setTimeout(() => {
+                      handleElementPropertyChange("displayField", "");
+                      handleElementPropertyChange("valueField", "");
+                    }, 0);
+                  }
                 } else if (value === "static") {
                   // When switching to static mode:
-                  // Reset data source related fields
-                  updates.dataSourceId = null;
-                  updates.displayField = "";
-                  updates.valueField = "";
+                  // Reset all data source related fields
+                  handleElementPropertyChange("dataSourceId", null);
+                  handleElementPropertyChange("displayField", "");
+                  handleElementPropertyChange("valueField", "");
                   
-                  // Start with empty or default options
-                  if (!selectedElement.options?.length) {
-                    updates.options = [
+                  // Ensure we have at least one option for static mode
+                  if (!selectedElement.options || selectedElement.options.length === 0) {
+                    handleElementPropertyChange("options", [
                       { label: "Option 1", value: "option1" }
-                    ];
+                    ]);
                   }
                 }
-                
-                // Apply all updates at once to avoid race conditions
-                Object.entries(updates).forEach(([key, value]) => {
-                  handleElementPropertyChange(key, value);
-                });
-                
-                console.log("Setting dropdown to: ", value, updates);
               }}
             >
               <SelectTrigger>

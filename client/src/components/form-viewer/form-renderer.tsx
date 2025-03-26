@@ -325,11 +325,22 @@ export function FormRenderer({
           dataSourceId = element.dataSource?.id;
         }
         
-        // If we have data source options and they've loaded, use them
-        // Otherwise fall back to manually defined options
-        const displayOptions = (dataSourceId && dropdownOptions.length > 0)
-          ? dropdownOptions 
-          : element.options || [];
+        // Determine which options to use based strictly on the optionsSource
+        let displayOptions;
+        
+        if (element.optionsSource === "dataSource" && dropdownOptions.length > 0) {
+          // If data source mode is explicitly set, use data source options (if loaded)
+          displayOptions = dropdownOptions;
+        } else if (element.optionsSource === "static" || !element.optionsSource) {
+          // If static mode or not specified, use static options
+          displayOptions = element.options || [];
+        } else if (dataSourceId && dropdownOptions.length > 0) {
+          // Legacy support for old format without optionsSource flag
+          displayOptions = dropdownOptions;
+        } else {
+          // Fallback to static options if nothing else works
+          displayOptions = element.options || [];
+        }
         
         return (
           <div className="space-y-2">
