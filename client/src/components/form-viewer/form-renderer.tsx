@@ -213,6 +213,13 @@ export function FormRenderer({
           const displayField = element.displayField || element.dataSource?.field;
           const valueField = element.valueField;
           
+          console.log("Dropdown config:", {
+            element: element.name,
+            dataSourceId,
+            displayField,
+            valueField
+          });
+          
           if (dataSourceId && (displayField || valueField)) {
             setIsLoadingOptions(true);
             
