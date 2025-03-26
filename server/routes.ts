@@ -526,18 +526,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { name: 'DueDate', type: 'datetime', selected: Array.isArray(selectedFields) && selectedFields.includes('DueDate') },
         ];
       } else if (dataSource.type === 'excel') {
-        // For Excel, return mock fields for now
-        // In a real implementation, this would parse the Excel file
-        fields = [
-          { name: 'Column1', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Column1') },
-          { name: 'Column2', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Column2') },
-          { name: 'Column3', type: 'number', selected: Array.isArray(selectedFields) && selectedFields.includes('Column3') },
-          { name: 'Column4', type: 'datetime', selected: Array.isArray(selectedFields) && selectedFields.includes('Column4') },
-          { name: 'Column5', type: 'number', selected: Array.isArray(selectedFields) && selectedFields.includes('Column5') },
-          { name: 'Column6', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Column6') },
-          { name: 'Column7', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Column7') },
-          { name: 'Column8', type: 'text', selected: Array.isArray(selectedFields) && selectedFields.includes('Column8') },
-        ];
+        try {
+          // Parse the config to get the Excel file URL
+          const config = typeof dataSource.config === 'string' ? 
+            JSON.parse(dataSource.config) : 
+            (dataSource.config as any || {});
+            
+          const { fileUrl } = config;
+          
+          if (fileUrl) {
+            console.log('Fetching Excel file from URL:', fileUrl);
+            // Fetch the Excel file
+            const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+            
+            // Parse the Excel file
+            const workbook = XLSX.read(response.data, { type: 'buffer' });
+            
+            // Get the first sheet
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Convert to JSON with headers
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            
+            if (Array.isArray(jsonData) && jsonData.length > 0) {
+              // Assume the first row contains headers/column names
+              const headers = jsonData[0] as string[];
+              console.log('Excel headers found when accessing data source:', headers);
+              
+              // Create field definitions based on the headers
+              fields = headers.map((header: string) => {
+                // Make default type text for simplicity
+                return { 
+                  name: header, 
+                  type: 'text', 
+                  selected: Array.isArray(selectedFields) && selectedFields.includes(header) 
+                };
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing Excel file for data source:', error);
+          // Fallback to empty fields array
+          fields = [];
+        }
       }
       
       // Return the data source with fields
