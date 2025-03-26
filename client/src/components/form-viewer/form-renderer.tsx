@@ -207,20 +207,26 @@ export function FormRenderer({
         
         // Fetch dropdown options from data source if configured
         useEffect(() => {
-          if (element.dataSourceId && (element.displayField || element.valueField)) {
+          // Get data source ID from either format (direct or nested)
+          const dataSourceId = element.dataSourceId || element.dataSource?.id;
+          // Get display/value fields
+          const displayField = element.displayField || element.dataSource?.field;
+          const valueField = element.valueField;
+          
+          if (dataSourceId && (displayField || valueField)) {
             setIsLoadingOptions(true);
             
             const fetchDropdownData = async () => {
               try {
-                console.log(`Fetching dropdown data from source ID: ${element.dataSourceId}, display field: ${element.displayField}, value field: ${element.valueField}`);
+                console.log(`Fetching dropdown data from source ID: ${dataSourceId}, display field: ${displayField}, value field: ${valueField}`);
                 
                 const response = await apiRequest<any[]>(
-                  `/api/datasources/${element.dataSourceId}/data`
+                  `/api/datasources/${dataSourceId}/data`
                 );
                 
                 if (response && Array.isArray(response)) {
                   // Use displayField if available, otherwise use valueField
-                  const fieldToUse = element.displayField || element.valueField;
+                  const fieldToUse = displayField || valueField;
                   
                   // Extract unique values from the specified field
                   const fieldValues = response
@@ -249,12 +255,12 @@ export function FormRenderer({
                   
                   // If both displayField and valueField are provided, create options with both
                   let options;
-                  if (element.displayField && element.valueField && element.displayField !== element.valueField) {
+                  if (displayField && valueField && displayField !== valueField) {
                     // Create mapping of unique display/value pairs
                     const optionsMap = new Map();
                     for (const item of response) {
-                      const display = item[element.displayField];
-                      const value = item[element.valueField];
+                      const display = item[displayField];
+                      const value = item[valueField];
                       if (display !== undefined && value !== undefined) {
                         optionsMap.set(String(value), {
                           value: String(value),
@@ -283,10 +289,11 @@ export function FormRenderer({
             
             fetchDropdownData();
           }
-        }, [element.dataSourceId, element.displayField, element.valueField]);
+        }, [element.dataSourceId, element.dataSource?.id, element.displayField, element.dataSource?.field, element.valueField]);
         
         // Determine which options to display
-        const displayOptions = element.dataSourceId && dropdownOptions.length > 0 
+        const dataSourceId = element.dataSourceId || element.dataSource?.id;
+        const displayOptions = dataSourceId && dropdownOptions.length > 0 
           ? dropdownOptions 
           : element.options || [];
         

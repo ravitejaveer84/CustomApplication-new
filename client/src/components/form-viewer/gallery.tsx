@@ -107,7 +107,7 @@ export function Gallery({ element, formId, formData }: GalleryProps) {
             
             {/* Additional fields */}
             <div className="mt-3 space-y-1">
-              {visibleColumns.slice(2).map((column, colIndex) => (
+              {visibleColumns.slice(2).map((column: {field: string, header?: string, visible?: boolean}, colIndex: number) => (
                 <div key={colIndex} className="flex justify-between text-sm">
                   <span className="font-medium">{column.header || column.field}:</span>
                   <span>{item[column.field]}</span>

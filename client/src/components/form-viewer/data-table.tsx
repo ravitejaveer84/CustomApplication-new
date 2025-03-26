@@ -38,8 +38,11 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
   
   // Fetch data from data source
   useEffect(() => {
+    // Get data source ID from either format (direct or nested)
+    const dataSourceId = element.dataSourceId || element.dataSource?.id;
+    
     // Make sure we have a data source connected to the element
-    if (!element.dataSource?.id) {
+    if (!dataSourceId) {
       setLoading(false);
       setError("No data source connected");
       return;
@@ -48,10 +51,10 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log("Fetching data from source:", element.dataSource.id);
+        console.log("Fetching data from source:", dataSourceId);
         
         const response = await apiRequest<any[]>(
-          `/api/datasources/${element.dataSource.id}/data`
+          `/api/datasources/${dataSourceId}/data`
         );
         
         if (response && Array.isArray(response)) {
