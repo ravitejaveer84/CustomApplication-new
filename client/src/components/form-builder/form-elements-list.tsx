@@ -101,6 +101,23 @@ export function FormElementsList({ onDragStart }: FormElementsListProps) {
           </div>
         ))}
       </div>
+      
+      {/* Advanced Elements */}
+      <div className="mb-3">
+        <div className="text-sm font-semibold text-gray-500 mb-2">ADVANCED</div>
+        {ADVANCED_ELEMENTS.map((element, index) => (
+          <div 
+            key={index}
+            className="bg-white border border-gray-300 rounded p-2 mb-2 cursor-move hover:bg-gray-50 flex items-center"
+            draggable={true}
+            data-element-type={element.type}
+            onDragStart={(e) => handleDragStart(e, element.type)}
+          >
+            {getIcon(element.icon)}
+            <span>{element.label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
