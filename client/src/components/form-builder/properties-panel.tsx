@@ -150,6 +150,7 @@ export function PropertiesPanel({
     }
   }, [selectedElement?.dataSource?.id]);
 
+  // General utility to update any property in the form element
   const handleFormFieldChange = (fieldName: string, value: any) => {
     const updated = {
       ...localElement,
@@ -159,6 +160,38 @@ export function PropertiesPanel({
     onElementUpdate(updated);
   };
 
+  // Utility to update any simple field within the form element
+  const handleElementPropertyChange = (fieldName: string, value: any) => {
+    const updated = { ...localElement };
+    updated[fieldName] = value;
+    setLocalElement(updated);
+    onElementUpdate(updated);
+  };
+  
+  // Update nested properties using dot notation (e.g., "validation.minLength")
+  const handleNestedFieldChange = (path: string, value: any) => {
+    const parts = path.split('.');
+    let updated = { ...localElement };
+    let current: any = updated;
+    
+    // Navigate through the object structure until the second-to-last part
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+      // Create the nested object if it doesn't exist
+      if (!current[part]) current[part] = {};
+      // Clone the nested object to avoid direct mutation
+      current[part] = { ...current[part] };
+      current = current[part];
+    }
+    
+    // Set the value on the last part
+    current[parts[parts.length - 1]] = value;
+    
+    setLocalElement(updated);
+    onElementUpdate(updated);
+  };
+
+  // Specifically handles changes to the data source ID
   const handleDataSourceChange = async (sourceIdStr: string) => {
     const sourceId = sourceIdStr === "none" ? 0 : parseInt(sourceIdStr);
     if (!sourceId || isNaN(sourceId)) {
@@ -189,7 +222,8 @@ export function PropertiesPanel({
     }
   };
 
-  const handleFieldChange = (fieldName: string) => {
+  // Specifically handles changes to the data source field mapping
+  const handleDataSourceFieldChange = (fieldName: string) => {
     const fieldValue = fieldName === "none" ? "" : fieldName;
     const updated = {
       ...localElement,
@@ -270,7 +304,7 @@ export function PropertiesPanel({
         </div>
         <Select
           value={localElement?.dataSource?.field || ""}
-          onValueChange={handleFieldChange}
+          onValueChange={handleDataSourceFieldChange}
           disabled={!localElement?.dataSource?.id}
         >
           <SelectTrigger className="w-full">
@@ -352,7 +386,7 @@ export function PropertiesPanel({
                 {...field}
                 onChange={(e) => {
                   field.onChange(e);
-                  handleFieldChange("label", e.target.value);
+                  handleElementPropertyChange("label", e.target.value);
                 }}
               />
             </FormControl>
@@ -372,7 +406,7 @@ export function PropertiesPanel({
                 {...field}
                 onChange={(e) => {
                   field.onChange(e);
-                  handleFieldChange("name", e.target.value);
+                  handleElementPropertyChange("name", e.target.value);
                 }}
               />
             </FormControl>
@@ -395,7 +429,7 @@ export function PropertiesPanel({
                   {...field}
                   onChange={(e) => {
                     field.onChange(e);
-                    handleFieldChange("placeholder", e.target.value);
+                    handleElementPropertyChange("placeholder", e.target.value);
                   }}
                 />
               </FormControl>
@@ -417,7 +451,7 @@ export function PropertiesPanel({
                 placeholder="Add help text here (optional)"
                 onChange={(e) => {
                   field.onChange(e);
-                  handleFieldChange("helpText", e.target.value);
+                  handleElementPropertyChange("helpText", e.target.value);
                 }}
               />
             </FormControl>
@@ -436,7 +470,7 @@ export function PropertiesPanel({
                 checked={field.value}
                 onCheckedChange={(checked) => {
                   field.onChange(checked);
-                  handleFieldChange("required", checked);
+                  handleElementPropertyChange("required", checked);
                 }}
               />
             </FormControl>
@@ -465,7 +499,7 @@ export function PropertiesPanel({
                         ...newOptions[index],
                         label: e.target.value,
                       };
-                      handleFieldChange("options", newOptions);
+                      handleElementPropertyChange("options", newOptions);
                     }}
                     placeholder="Option label"
                     className="flex-1"
@@ -478,7 +512,7 @@ export function PropertiesPanel({
                         ...newOptions[index],
                         value: e.target.value,
                       };
-                      handleFieldChange("options", newOptions);
+                      handleElementPropertyChange("options", newOptions);
                     }}
                     placeholder="Value"
                     className="flex-1"
@@ -498,7 +532,7 @@ export function PropertiesPanel({
                     value: `option${selectedElement.options?.length || 0 + 1}`,
                   },
                 ];
-                handleFieldChange("options", newOptions);
+                handleElementPropertyChange("options", newOptions);
               }}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -527,7 +561,7 @@ export function PropertiesPanel({
                   {...field}
                   onChange={(e) => {
                     field.onChange(e);
-                    handleFieldChange(
+                    handleNestedFieldChange(
                       "validation.minLength",
                       parseInt(e.target.value),
                     );
@@ -554,7 +588,7 @@ export function PropertiesPanel({
                   {...field}
                   onChange={(e) => {
                     field.onChange(e);
-                    handleFieldChange(
+                    handleNestedFieldChange(
                       "validation.maxLength",
                       parseInt(e.target.value),
                     );
@@ -580,7 +614,7 @@ export function PropertiesPanel({
                   placeholder="Regular expression"
                   onChange={(e) => {
                     field.onChange(e);
-                    handleFieldChange("validation.pattern", e.target.value);
+                    handleNestedFieldChange("validation.pattern", e.target.value);
                   }}
                 />
               </FormControl>
@@ -602,7 +636,7 @@ export function PropertiesPanel({
                 placeholder="Error message for invalid input"
                 onChange={(e) => {
                   field.onChange(e);
-                  handleFieldChange("validation.errorMessage", e.target.value);
+                  handleElementPropertyChange("validation.errorMessage", e.target.value);
                 }}
               />
             </FormControl>
