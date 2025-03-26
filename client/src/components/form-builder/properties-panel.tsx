@@ -6,6 +6,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,8 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
-import { Plus, RefreshCw, Code } from "lucide-react";
+import { Plus, RefreshCw, Code, Info, HelpCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ActionEditor } from "./action-editor";
 import { ButtonPropertiesEditor } from "./button-properties-editor";
@@ -42,21 +50,28 @@ export function PropertiesPanel({
   selectedElement,
   onElementUpdate,
 }: PropertiesPanelProps) {
+  if (!selectedElement) {
+    return (
+      <div className="p-4 text-center text-gray-500">
+        <p>Select a form element to view and edit its properties</p>
+      </div>
+    );
+  }
+  const [localElement, setLocalElement] = useState<FormElement | null>(
+    selectedElement,
+  );
+
+  useEffect(() => {
+    setLocalElement(selectedElement);
+  }, [selectedElement]);
+
   const [activeTab, setActiveTab] = useState<
     "basic" | "validation" | "data" | "advanced" | "actions"
   >("basic");
 
-  // State for holding selected data source details with fields
   const [activeDataSource, setActiveDataSource] = useState<any>(null);
   const [activeSourceFields, setActiveSourceFields] = useState<any[]>([]);
-  
-  // This is used for general field changes (not data source mappings)
-  const handleFormFieldChange = (fieldName: string, value: any) => {
-    onElementUpdate({
-      ...selectedElement,
-      [fieldName]: value,
-    });
-  };
+  const [selectedDataSource, setSelectedDataSource] = useState<any>(null);
 
   const form = useForm<FormElement>({
     defaultValues: selectedElement || {
@@ -80,99 +95,34 @@ export function PropertiesPanel({
     },
   });
 
-  // Fetch data sources
-  const { data: dataSources = [], isLoading: loadingDataSources } = useQuery<
-    DataSource[]
-  >({
+  const { data: dataSources = [] } = useQuery<DataSource[]>({
     queryKey: ["/api/datasources"],
     enabled: activeTab === "data",
   });
 
-  // Get the data source ID from the selected element
   const dataSourceId = selectedElement?.dataSource?.id;
 
-  // Get all data sources
-  const { isLoading: loadingDataSource, refetch: refetchDataSources } =
-    useQuery({
-      queryKey: ["/api/datasources"],
-      enabled: true,
-      refetchOnMount: true,
-    });
-
-  // This will directly fetch the full data source with its fields
-  const [selectedDataSource, setSelectedDataSource] = useState<any>(null);
-
-  // Create a function to fetch the specific data source directly
   const fetchDataSource = useCallback(async (id: number) => {
     if (!id) return;
-
     try {
-      console.log("Directly fetching data source with ID:", id);
       const response = await fetch(`/api/datasources/${id}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch data source: ${response.statusText}`);
-      }
-
       const data = await response.json();
-      console.log("Fetched data source:", data);
-
-      // Ensure fields is always an array and parse config if it's a string
-      if (data) {
-        // Initialize fields array if not present
-        if (!data.fields) {
-          data.fields = [];
+      if (!data.fields) data.fields = [];
+      if (typeof data.config === "string") {
+        try {
+          data.parsedConfig = JSON.parse(data.config);
+        } catch (e) {
+          console.error("Error parsing config:", e);
         }
-
-        // Parse config if it's a JSON string
-        if (typeof data.config === "string" && data.config) {
-          try {
-            data.parsedConfig = JSON.parse(data.config);
-          } catch (e) {
-            console.error("Error parsing config:", e);
-          }
-        }
-
-        setSelectedDataSource(data);
-        return data;
       }
+      setSelectedDataSource(data);
+      return data;
     } catch (err) {
       console.error("Error fetching data source:", err);
     }
-
     return null;
   }, []);
 
-  // Function to refresh the data source
-  const refetchDataSource = useCallback(async () => {
-    if (selectedElement?.dataSource?.id) {
-      try {
-        console.log(
-          "Manually refreshing data source with ID:",
-          selectedElement.dataSource.id,
-        );
-        const response = await fetch(
-          `/api/datasources/${selectedElement.dataSource.id}`,
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch data source");
-        }
-
-        const data = await response.json();
-        console.log("Refreshed data source:", data);
-
-        setActiveDataSource(data);
-        // Ensure fields is an array
-        const fields = Array.isArray(data.fields) ? data.fields : [];
-        setActiveSourceFields(fields);
-      } catch (error) {
-        console.error("Error refreshing data source:", error);
-      }
-    }
-  }, [selectedElement?.dataSource?.id]);
-
-  // Fetch the data source when the ID changes
   useEffect(() => {
     if (dataSourceId) {
       fetchDataSource(dataSourceId);
@@ -181,128 +131,212 @@ export function PropertiesPanel({
     }
   }, [dataSourceId, fetchDataSource]);
 
-  const handleFieldChange = useCallback(
-    (fieldName: string, value: any) => {
-      if (!selectedElement) return;
-
-      form.setValue(fieldName as any, value);
-
-      // Only update parent component when we have a complete change
-      // This could be throttled or debounced in a real implementation
-      const updatedValues = form.getValues();
-      onElementUpdate({ ...selectedElement, ...updatedValues });
-    },
-    [selectedElement, form, onElementUpdate],
-  );
-
-  // Force refresh when changing tab to data
-  useEffect(() => {
-    if (activeTab === "data" && dataSourceId) {
-      console.log("Refreshing data source fields for ID:", dataSourceId);
-      refetchDataSource();
-    }
-  }, [activeTab, dataSourceId, refetchDataSource]);
-
-  // Add debugging to check if we're getting data source fields
-  useEffect(() => {
-    if (dataSourceId && selectedDataSource && selectedElement) {
-      console.log("Selected data source:", selectedDataSource);
-      console.log("Fields:", selectedDataSource.fields);
-
-      // If we have fields and the current field mapping is empty, suggest the first selected field
-      if (
-        selectedDataSource.fields?.length > 0 &&
-        !selectedElement.dataSource?.field
-      ) {
-        const selectedFields = selectedDataSource.fields.filter(
-          (f: any) => f.selected,
-        );
-        if (selectedFields.length > 0) {
-          // Suggest the first selected field
-          const suggestedField = selectedFields[0].name;
-          handleFieldChange("dataSource", {
-            ...selectedElement.dataSource,
-            field: suggestedField,
-          });
-          console.log("Auto-selected field:", suggestedField);
-        }
-      }
-    }
-  }, [dataSourceId, selectedDataSource, selectedElement, handleFieldChange]);
-
-  useEffect(() => {
-    if (selectedElement) {
-      form.reset(selectedElement);
-    }
-  }, [selectedElement, form]);
-
-  // Direct API call to get data source with fields when id changes
   useEffect(() => {
     if (selectedElement?.dataSource?.id) {
-      const fetchSourceData = async () => {
-        try {
-          const response = await fetch(
-            `/api/datasources/${selectedElement.dataSource.id}`,
-          );
-          if (!response.ok) throw new Error("Failed to fetch data source");
-
-          const data = await response.json();
-          console.log("Fetched data source data:", data);
-
+      fetch(`/api/datasources/${selectedElement.dataSource.id}`)
+        .then((res) => res.json())
+        .then((data) => {
           setActiveDataSource(data);
-          // Ensure fields is an array
-          const fields = Array.isArray(data.fields) ? data.fields : [];
-          setActiveSourceFields(fields);
-        } catch (error) {
-          console.error("Error fetching data source:", error);
+          setActiveSourceFields(Array.isArray(data.fields) ? data.fields : []);
+        })
+        .catch((err) => {
+          console.error("Error loading data source:", err);
           setActiveDataSource(null);
           setActiveSourceFields([]);
-        }
-      };
-
-      fetchSourceData();
+        });
     } else {
       setActiveDataSource(null);
       setActiveSourceFields([]);
     }
   }, [selectedElement?.dataSource?.id]);
 
-  if (!selectedElement) {
-    return (
-      <div className="p-4 text-center text-gray-500">
-        <p>Select a form element to view and edit its properties</p>
-      </div>
-    );
-  }
+  const handleFormFieldChange = (fieldName: string, value: any) => {
+    const updated = {
+      ...localElement,
+      [fieldName]: value,
+    };
+    setLocalElement(updated);
+    onElementUpdate(updated);
+  };
 
-  const getElementIcon = (type: string) => {
-    switch (type) {
-      case "text":
-        return "font";
-      case "number":
-        return "hashtag";
-      case "date":
-        return "calendar";
-      case "textarea":
-        return "align-left";
-      case "dropdown":
-        return "chevron-down-square";
-      case "radio":
-        return "circle-dot";
-      case "checkbox":
-        return "check-square";
-      case "toggle":
-        return "toggle-left";
-      case "section":
-        return "square";
-      case "column":
-        return "columns";
-      case "divider":
-        return "minus";
-      default:
-        return "square";
+  const handleDataSourceChange = async (sourceIdStr: string) => {
+    const sourceId = sourceIdStr === "none" ? 0 : parseInt(sourceIdStr);
+    if (!sourceId || isNaN(sourceId)) {
+      setActiveDataSource(null);
+      setActiveSourceFields([]);
+      const updated = {
+        ...localElement,
+        dataSource: { id: 0, field: "" },
+      };
+      setLocalElement(updated);
+      onElementUpdate(updated);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/datasources/${sourceId}`);
+      const data = await response.json();
+      setActiveDataSource(data);
+      setActiveSourceFields(data.fields || []);
+      const updated = {
+        ...localElement,
+        dataSource: { id: sourceId, field: "" },
+      };
+      setLocalElement(updated);
+      onElementUpdate(updated);
+    } catch (error) {
+      console.error("Error loading data source:", error);
     }
   };
+
+  const handleFieldChange = (fieldName: string) => {
+    const fieldValue = fieldName === "none" ? "" : fieldName;
+    const updated = {
+      ...localElement,
+      dataSource: {
+        id: localElement?.dataSource?.id || 0,
+        field: fieldValue,
+      },
+    };
+    setLocalElement(updated);
+    onElementUpdate(updated);
+  };
+
+  const renderDataMappingProperties = () => (
+    <div className="space-y-4">
+      <div className="mb-6">
+        <div className="flex items-center space-x-2 mb-1">
+          <FormLabel>Data Source</FormLabel>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Connect this field to a data source to populate it with external data.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <Select
+          value={
+            !localElement?.dataSource?.id || localElement.dataSource.id === 0
+              ? "none"
+              : localElement.dataSource.id.toString()
+          }
+          onValueChange={handleDataSourceChange}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a data source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">None</SelectItem>
+            {dataSources.map((source) => (
+              <SelectItem key={source.id} value={source.id.toString()}>
+                <div className="flex items-center">
+                  <span>{source.name}</span>
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    {source.type}
+                  </Badge>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {dataSources.length === 0 && (
+          <p className="text-xs text-muted-foreground mt-1">
+            No data sources available. Add data sources from the Data Sources page.
+          </p>
+        )}
+      </div>
+
+      <div className="mb-6">
+        <div className="flex items-center space-x-2 mb-1">
+          <FormLabel>Map to Field</FormLabel>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Select a field from the data source to map to this form field. The data will be loaded when the form is viewed.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <Select
+          value={localElement?.dataSource?.field || ""}
+          onValueChange={handleFieldChange}
+          disabled={!localElement?.dataSource?.id}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a field" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">None</SelectItem>
+            {activeSourceFields.map((field) => (
+              <SelectItem key={field.name} value={field.name}>
+                <div className="flex items-center">
+                  <span>{field.name}</span>
+                  {field.type && (
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      {field.type}
+                    </Badge>
+                  )}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {activeSourceFields.length === 0 && localElement?.dataSource?.id && (
+          <p className="text-xs text-muted-foreground mt-1">
+            No fields available in the selected data source.
+          </p>
+        )}
+      </div>
+
+      <FormField
+        control={form.control}
+        name="defaultValue"
+        render={({ field }) => (
+          <FormItem>
+            <div className="flex items-center space-x-2">
+              <FormLabel>Default Value</FormLabel>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                      <HelpCircle className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>Default value to show when no data is available. This will be overridden by data source values when available.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <FormControl>
+              <Input
+                {...field}
+                placeholder="Default value (optional)"
+                onChange={(e) => {
+                  field.onChange(e);
+                  handleFormFieldChange("defaultValue", e.target.value);
+                }}
+              />
+            </FormControl>
+            <FormDescription className="text-xs">
+              This value will be used if no data is provided from the data source.
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+    </div>
+  );
 
   const renderBasicProperties = () => (
     <div className="space-y-4">
@@ -578,150 +612,6 @@ export function PropertiesPanel({
     </div>
   );
 
-  const renderDataMappingProperties = () => {
-    // Handle data source selection using shadcn Select component
-    const handleDataSourceChange = async (sourceIdStr: string) => {
-      // If "none" is selected, clear the fields
-      if (sourceIdStr === "none") {
-        setActiveDataSource(null);
-        setActiveSourceFields([]);
-        
-        // Update the element to clear the data source
-        onElementUpdate({
-          ...selectedElement,
-          dataSource: { id: 0, field: "none" },
-        });
-        return;
-      }
-      
-      const sourceId = parseInt(sourceIdStr);
-      
-      if (isNaN(sourceId) || sourceId === 0) {
-        // If invalid source ID, clear the fields
-        setActiveDataSource(null);
-        setActiveSourceFields([]);
-        
-        // Update the element to clear the data source
-        onElementUpdate({
-          ...selectedElement,
-          dataSource: { id: 0, field: "none" },
-        });
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/datasources/${sourceId}`);
-        if (!response.ok) throw new Error("Failed to fetch data source");
-
-        const data = await response.json();
-        console.log("Data source selected:", data);
-
-        // Update state
-        setActiveDataSource(data);
-        setActiveSourceFields(data.fields || []);
-
-        // Update the element directly
-        onElementUpdate({
-          ...selectedElement,
-          dataSource: { id: sourceId, field: "" },
-        });
-      } catch (error) {
-        console.error("Error loading data source:", error);
-      }
-    };
-
-    // Handle field selection using shadcn Select component
-    const handleFieldChange = (fieldName: string) => {
-      console.log("Field selected:", fieldName);
-      
-      // If "none" is selected, clear the field selection but keep the data source
-      const fieldValue = fieldName === "none" ? "" : fieldName;
-
-      // Update the element directly with the selected field
-      onElementUpdate({
-        ...selectedElement,
-        dataSource: {
-          id: selectedElement.dataSource?.id || 0,
-          field: fieldValue,
-        },
-      });
-    };
-    
-    // This is used for other field changes (not data source fields)
-    const handleFormFieldChange = (fieldName: string, value: any) => {
-      onElementUpdate({
-        ...selectedElement,
-        [fieldName]: value,
-      });
-    };
-
-    return (
-      <div className="space-y-4">
-        <div className="mb-6">
-          <FormLabel>Data Source</FormLabel>
-          <Select
-            value={selectedElement.dataSource?.id?.toString() || ""}
-            onValueChange={handleDataSourceChange}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a data source" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              {dataSources.map((source) => (
-                <SelectItem key={source.id} value={source.id.toString()}>
-                  {source.name} ({source.type})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="mb-6">
-          <FormLabel>Map to Field</FormLabel>
-          <Select
-            value={selectedElement.dataSource?.field || ""}
-            onValueChange={handleFieldChange}
-            disabled={!selectedElement.dataSource?.id}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a field" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              {activeSourceFields.map((field) => (
-                <SelectItem key={field.name} value={field.name}>
-                  {field.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Default Value Field */}
-        <FormField
-          control={form.control}
-          name="defaultValue"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Default Value</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  placeholder="Default value (optional)"
-                  onChange={(e) => {
-                    field.onChange(e);
-                    handleFormFieldChange("defaultValue", e.target.value);
-                  }}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-      </div>
-    );
-  };
-
   const renderAdvancedProperties = () => (
     <div className="space-y-4">
       {/* CSS Class Field */}
@@ -757,7 +647,7 @@ export function PropertiesPanel({
                 handleFormFieldChange("visibilityCondition", undefined);
                 return;
               }
-                
+
               const condition = selectedElement.visibilityCondition || {
                 field: "",
                 operator: "equals",
@@ -775,11 +665,14 @@ export function PropertiesPanel({
               <SelectItem value="department">Department</SelectItem>
               <SelectItem value="position">Position</SelectItem>
               {/* Dynamically show all form fields as potential conditions */}
-              {form.getValues().elements?.filter((e: any) => e.id !== selectedElement.id).map((e: any) => (
-                <SelectItem key={e.id} value={e.name || `field_${e.id}`}>
-                  {e.label || e.name || `Field ${e.id}`}
-                </SelectItem>
-              ))}
+              {form
+                .getValues()
+                .elements?.filter((e: any) => e.id !== selectedElement.id)
+                .map((e: any) => (
+                  <SelectItem key={e.id} value={e.name || `field_${e.id}`}>
+                    {e.label || e.name || `Field ${e.id}`}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
 
@@ -840,6 +733,37 @@ export function PropertiesPanel({
     </div>
   );
 
+  const getElementIcon = (type: string) => {
+    switch (type) {
+      case "text":
+        return "📝";
+      case "number":
+        return "🔢";
+      case "date":
+        return "📅";
+      case "textarea":
+        return "📄";
+      case "dropdown":
+        return "🔽";
+      case "radio":
+        return "🔘";
+      case "checkbox":
+        return "☑️";
+      case "toggle":
+        return "🎚️";
+      case "section":
+        return "📦";
+      case "column":
+        return "📊";
+      case "divider":
+        return "➖";
+      case "button":
+        return "🔲";
+      default:
+        return "📁";
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="p-3 border-b border-gray-200 font-semibold flex justify-between items-center">
@@ -848,47 +772,69 @@ export function PropertiesPanel({
 
       <div className="p-4 pb-0">
         {/* Selected Element Info */}
-        <div className="mb-4 pb-3 border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <span className="text-primary">
-              {getElementIcon(selectedElement.type)}
-            </span>
-            <span className="font-medium capitalize">
-              {selectedElement.type} Field
-            </span>
+        {selectedElement && (
+          <div className="mb-4 pb-3 border-b border-gray-200">
+            <div className="flex items-center space-x-2">
+              <span className="text-primary">
+                {getElementIcon(selectedElement.type)}
+              </span>
+              <span className="font-medium capitalize">
+                {selectedElement.type} Field
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Tabs */}
         <div className="flex border-b border-gray-200 mb-4">
           <button
-            className={`px-3 py-2 text-sm font-medium ${activeTab === "basic" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`}
+            className={`px-3 py-2 text-sm font-medium ${
+              activeTab === "basic"
+                ? "text-primary border-b-2 border-primary"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
             onClick={() => setActiveTab("basic")}
           >
             Basic
           </button>
           <button
-            className={`px-3 py-2 text-sm font-medium ${activeTab === "validation" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`}
+            className={`px-3 py-2 text-sm font-medium ${
+              activeTab === "validation"
+                ? "text-primary border-b-2 border-primary"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
             onClick={() => setActiveTab("validation")}
           >
             Validation
           </button>
           <button
-            className={`px-3 py-2 text-sm font-medium ${activeTab === "data" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`}
+            className={`px-3 py-2 text-sm font-medium ${
+              activeTab === "data"
+                ? "text-primary border-b-2 border-primary"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
             onClick={() => setActiveTab("data")}
           >
             Data
           </button>
           {selectedElement.type === "button" && (
             <button
-              className={`px-3 py-2 text-sm font-medium ${activeTab === "actions" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`}
+              className={`px-3 py-2 text-sm font-medium ${
+                activeTab === "actions"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
               onClick={() => setActiveTab("actions")}
             >
               Actions
             </button>
           )}
           <button
-            className={`px-3 py-2 text-sm font-medium ${activeTab === "advanced" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`}
+            className={`px-3 py-2 text-sm font-medium ${
+              activeTab === "advanced"
+                ? "text-primary border-b-2 border-primary"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
             onClick={() => setActiveTab("advanced")}
           >
             Advanced
