@@ -612,6 +612,7 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
               <Select 
                 value={field.value ? field.value.toString() : ""} 
                 onValueChange={(value) => {
+                  console.log("Selected field value:", value);
                   field.onChange(value);
                   const dataSource = {
                     ...selectedElement.dataSource,
@@ -632,21 +633,12 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
                   ) : !activeSourceFields || activeSourceFields.length === 0 ? (
                     <SelectItem value="no-fields" disabled>No fields available in data source</SelectItem>
                   ) : (
-                    // Add extra debugging to see exactly what fields we have
-                    <>
-                      {console.log("Rendering fields in dropdown:", activeSourceFields)}
-                      {activeSourceFields.map((field: { name: string; type: string; selected: boolean }) => (
-                        <SelectItem key={field.name} value={field.name}>
-                          <div className="flex items-center">
-                            <span>{field.name}</span>
-                            <span className="ml-2 text-xs text-muted-foreground">({field.type})</span>
-                            {field.selected && (
-                              <span className="ml-auto text-xs text-primary">✓ Selected</span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </>
+                    // Simplified field item rendering to avoid any potential issues
+                    activeSourceFields.map((field: { name: string; type: string; selected: boolean }) => (
+                      <SelectItem key={field.name} value={field.name}>
+                        {field.name}
+                      </SelectItem>
+                    ))
                   )}
                 </SelectContent>
               </Select>
