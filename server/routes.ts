@@ -788,11 +788,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Assume the first row contains headers/column names
-          const headers = jsonData[0];
+          const headers = jsonData[0] as string[];
           console.log('Excel headers found:', headers);
           
           // Determine data types by checking the second row (if available)
-          const dataRow = jsonData.length > 1 ? jsonData[1] : null;
+          const dataRow = jsonData.length > 1 ? jsonData[1] as any[] : null;
           
           // Create field definitions based on the headers
           const excelFields = headers.map((header: string, index: number) => {

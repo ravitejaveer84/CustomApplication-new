@@ -610,39 +610,42 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
                         Select the fields you want to include in your form. These fields will be available when mapping form elements.
                       </p>
                       
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-12">Include</TableHead>
-                            <TableHead>Field Name</TableHead>
-                            <TableHead>Type</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {fields.map((field, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <div className="flex items-center">
-                                  <Checkbox 
-                                    id={`field-${index}`} 
-                                    checked={field.selected} 
-                                    onCheckedChange={() => toggleFieldSelection(index)}
-                                  />
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Label 
-                                  htmlFor={`field-${index}`}
-                                  className="cursor-pointer"
-                                >
-                                  {field.name}
-                                </Label>
-                              </TableCell>
-                              <TableCell>{field.type}</TableCell>
+                      {/* Added max-height with overflow-y-auto to make table scrollable */}
+                      <div className="max-h-[400px] overflow-y-auto border rounded-md">
+                        <Table>
+                          <TableHeader className="sticky top-0 bg-background z-10">
+                            <TableRow>
+                              <TableHead className="w-12">Include</TableHead>
+                              <TableHead>Field Name</TableHead>
+                              <TableHead>Type</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {fields.map((field, index) => (
+                              <TableRow key={index}>
+                                <TableCell>
+                                  <div className="flex items-center">
+                                    <Checkbox 
+                                      id={`field-${index}`} 
+                                      checked={field.selected} 
+                                      onCheckedChange={() => toggleFieldSelection(index)}
+                                    />
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Label 
+                                    htmlFor={`field-${index}`}
+                                    className="cursor-pointer"
+                                  >
+                                    {field.name}
+                                  </Label>
+                                </TableCell>
+                                <TableCell>{field.type}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -662,9 +665,10 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
                         Preview of data from the selected data source. Only the first 5 rows are shown.
                       </p>
                       
-                      <div className="overflow-x-auto">
+                      {/* Added max-height with overflow-y-auto for vertical scrolling */}
+                      <div className="max-h-[400px] overflow-y-auto overflow-x-auto border rounded-md">
                         <Table>
-                          <TableHeader>
+                          <TableHeader className="sticky top-0 bg-background z-10">
                             <TableRow>
                               {fields.filter(f => f.selected).map((field, index) => (
                                 <TableHead key={index}>{field.name}</TableHead>
@@ -675,7 +679,12 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
                             {previewData.map((row, rowIndex) => (
                               <TableRow key={rowIndex}>
                                 {fields.filter(f => f.selected).map((field, fieldIndex) => (
-                                  <TableCell key={fieldIndex}>{row[field.name]}</TableCell>
+                                  <TableCell key={fieldIndex}>
+                                    {/* Add max-width to prevent cells from becoming too wide */}
+                                    <div className="max-w-[200px] truncate" title={String(row[field.name])}>
+                                      {row[field.name]}
+                                    </div>
+                                  </TableCell>
                                 ))}
                               </TableRow>
                             ))}
