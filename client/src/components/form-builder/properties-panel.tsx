@@ -855,37 +855,23 @@ export function PropertiesPanel({
             <Select
               value={selectedElement.optionsSource || "static"}
               onValueChange={(value) => {
-                console.log("Changing dropdown options source from", selectedElement.optionsSource, "to", value);
+                // Update the options source
+                handleElementPropertyChange("optionsSource", value);
                 
+                // When switching to data source mode, ensure we have reasonable defaults
                 if (value === "dataSource") {
-                  // When switching to data source mode:
-                  // Don't clear static options to preserve them if user switches back
-                  
-                  // Set data source mode first
-                  handleElementPropertyChange("optionsSource", value);
-                  
-                  // Initialize data source fields if empty
-                  if (!selectedElement.dataSourceId) {
-                    console.log("No datasource ID found, resetting fields");
-                    // We'll set these to empty/null so the user can select them
-                    setTimeout(() => {
-                      handleElementPropertyChange("displayField", "");
-                      handleElementPropertyChange("valueField", "");
-                    }, 0);
-                  }
-                } else if (value === "static") {
-                  // When switching to static mode:
-                  // Reset all data source related fields
-                  handleElementPropertyChange("dataSourceId", null);
-                  handleElementPropertyChange("displayField", "");
-                  handleElementPropertyChange("valueField", "");
-                  
-                  // Ensure we have at least one option for static mode
+                  // Keep any existing options for when we switch back
+                  // We don't need to do anything special here
+                  console.log("Switched to data source mode");
+                } 
+                else if (value === "static") {
+                  // When switching to static mode, ensure we have at least one option
                   if (!selectedElement.options || selectedElement.options.length === 0) {
                     handleElementPropertyChange("options", [
                       { label: "Option 1", value: "option1" }
                     ]);
                   }
+                  console.log("Switched to static mode with options:", selectedElement.options);
                 }
               }}
             >

@@ -325,29 +325,24 @@ export function FormRenderer({
           dataSourceId = element.dataSource?.id;
         }
         
-        // Simplified logic for determining which options to show
+        // Logic for determining options to display:
+        // 1. If in data source mode with options loaded, use data source options
+        // 2. If in data source mode but options aren't loaded (yet), show loading state
+        // 3. If static mode, use static options
         let displayOptions: {label: string, value: string}[] = [];
         
-        console.log("Deciding dropdown options source mode:", {
-          optionsSource: element.optionsSource,
-          hasDataSourceId: Boolean(dataSourceId),
-          dataSourceOptionsCount: dropdownOptions.length,
-          staticOptionsCount: (element.options || []).length
-        });
-        
-        // Explicitly check if we have data source options and are in data source mode
-        if (element.optionsSource === "dataSource" && dropdownOptions.length > 0) {
-          // If we're in data source mode and have loaded options, use them
-          displayOptions = dropdownOptions;
-          console.log(`Using ${dropdownOptions.length} data source options for element ${element.id}`);
-        } else if (element.optionsSource === "dataSource" && isLoadingOptions) {
-          // If we're still loading data source options
-          displayOptions = []; // Show empty while loading
-          console.log(`Still loading data source options for element ${element.id}`);
+        if (element.optionsSource === "dataSource") {
+          // In data source mode
+          if (dropdownOptions.length > 0) {
+            // We have options from data source, use them
+            displayOptions = dropdownOptions;
+          } else {
+            // In data source mode but no options yet, use empty list (loading indicator shown separately)
+            displayOptions = [];
+          }
         } else {
-          // In all other cases (static mode or fallback), use the static options
+          // In static mode, use static options
           displayOptions = element.options || [];
-          console.log(`Using ${displayOptions.length} static options for element ${element.id}`);
         }
         
         return (
