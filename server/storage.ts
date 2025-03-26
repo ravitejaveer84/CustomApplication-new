@@ -77,11 +77,11 @@ export class MemStorage implements IStorage {
   
   private async initializeDefaultUsers() {
     // Create admin user with password 'admin123'
-    // In real implementation, we'd use bcrypt to hash the password, but for simplicity we'll use the hashed version
-    const hashedPassword = '$2b$10$3euPzG8A0oNqLG/xCj.EROsKQjMB2iCPIT2sS/CnHkDNK5nLG4Ig6'; // 'admin123' hashed
+    // We're storing the plaintext password here since we're using a hardcoded development login
+    // In a real application, we would use proper bcrypt hashing
     await this.createUser({
       username: "admin",
-      password: hashedPassword,
+      password: "admin123", // Plain password, login route has special logic to handle this
       role: "admin",
       email: "admin@example.com",
       name: "Administrator"
