@@ -72,6 +72,15 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
     fetchData();
   }, [element.dataSourceId]);
 
+  // Define column type for better type safety
+  type TableColumn = {
+    field: string;
+    header?: string;
+    visible?: boolean;
+    sortable?: boolean;
+    width?: number;
+  };
+
   // Filter data based on search term
   useEffect(() => {
     if (!data.length || !searchTerm.trim()) {
@@ -81,7 +90,7 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
 
     const searchTermLower = searchTerm.toLowerCase();
     const filtered = data.filter(row => {
-      return element.columns?.some(column => {
+      return element.columns?.some((column: TableColumn) => {
         const value = row[column.field];
         if (value === null || value === undefined) return false;
         return String(value).toLowerCase().includes(searchTermLower);
@@ -136,12 +145,12 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
   // Export to Excel
   const handleExport = () => {
     // Get visible columns only
-    const visibleColumns = element.columns?.filter(col => col.visible !== false) || [];
+    const visibleColumns = element.columns?.filter((col: TableColumn) => col.visible !== false) || [];
     
     // Map data to only include visible columns
     const exportData = filteredData.map(row => {
       const newRow: Record<string, any> = {};
-      visibleColumns.forEach(col => {
+      visibleColumns.forEach((col: TableColumn) => {
         newRow[col.header || col.field] = row[col.field];
       });
       return newRow;
@@ -170,7 +179,7 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
   };
 
   // Visible columns
-  const visibleColumns = element.columns?.filter(col => col.visible !== false) || [];
+  const visibleColumns = element.columns?.filter((col: TableColumn) => col.visible !== false) || [];
 
   if (loading) {
     return (
@@ -262,7 +271,7 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              {visibleColumns.map((column) => (
+              {visibleColumns.map((column: TableColumn) => (
                 <TableHead 
                   key={column.field}
                   style={{width: column.width ? `${column.width}px` : 'auto'}}
@@ -282,7 +291,7 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
           <TableBody>
             {paginatedData.map((row, rowIndex) => (
               <TableRow key={rowIndex}>
-                {visibleColumns.map((column) => (
+                {visibleColumns.map((column: TableColumn) => (
                   <TableCell key={column.field}>
                     {row[column.field] !== undefined && row[column.field] !== null
                       ? String(row[column.field])
@@ -300,10 +309,27 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
         <Pagination>
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious 
-                onClick={() => goToPage(Math.max(1, currentPage - 1))} 
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => goToPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-              />
+                className="gap-1 h-8 w-8 p-0"
+                aria-label="Go to previous page"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </Button>
             </PaginationItem>
             
             {Array.from({length: Math.min(5, totalPages)}, (_, i) => {
@@ -341,10 +367,27 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
             })}
             
             <PaginationItem>
-              <PaginationNext 
-                onClick={() => goToPage(Math.min(totalPages, currentPage + 1))} 
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
-              />
+                className="gap-1 h-8 w-8 p-0"
+                aria-label="Go to next page"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </Button>
             </PaginationItem>
           </PaginationContent>
         </Pagination>
