@@ -125,30 +125,26 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
   }, []);
   
   // Function to refresh the data source
-  const refetchDataSource = useCallback(() => {
+  const refetchDataSource = useCallback(async () => {
     if (selectedElement?.dataSource?.id) {
-      const fetchData = async () => {
-        try {
-          console.log("Manually refreshing data source with ID:", selectedElement.dataSource.id);
-          const response = await fetch(`/api/datasources/${selectedElement.dataSource.id}`);
-          
-          if (!response.ok) {
-            throw new Error("Failed to fetch data source");
-          }
-          
-          const data = await response.json();
-          console.log("Refreshed data source:", data);
-          
-          setActiveDataSource(data);
-          // Ensure fields is an array
-          const fields = Array.isArray(data.fields) ? data.fields : [];
-          setActiveSourceFields(fields);
-        } catch (error) {
-          console.error("Error refreshing data source:", error);
+      try {
+        console.log("Manually refreshing data source with ID:", selectedElement.dataSource.id);
+        const response = await fetch(`/api/datasources/${selectedElement.dataSource.id}`);
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch data source");
         }
-      };
-      
-      fetchData();
+        
+        const data = await response.json();
+        console.log("Refreshed data source:", data);
+        
+        setActiveDataSource(data);
+        // Ensure fields is an array
+        const fields = Array.isArray(data.fields) ? data.fields : [];
+        setActiveSourceFields(fields);
+      } catch (error) {
+        console.error("Error refreshing data source:", error);
+      }
     }
   }, [selectedElement?.dataSource?.id]);
   
@@ -533,21 +529,42 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
               <FormLabel>Data Source</FormLabel>
               <Select 
                 value={field.value ? field.value.toString() : ""} 
-                onValueChange={(value) => {
+                onValueChange={async (value) => {
                   field.onChange(value);
                   const numericValue = parseInt(value);
-                  // Create proper structure for dataSource
-                  const dataSource = {
-                    id: numericValue,
-                    field: ""
-                  };
-                  handleFieldChange("dataSource", dataSource);
-                  // Reset the field mapping when data source changes
-                  handleFieldChange("dataSource.field", "");
-                  console.log("Changed data source to:", numericValue);
                   
-                  // Force refetch data source to get its fields
-                  refetchDataSource();
+                  try {
+                    // Fetch the data source directly
+                    console.log("Directly fetching data for selected source ID:", numericValue);
+                    const response = await fetch(`/api/datasources/${numericValue}`);
+                    
+                    if (!response.ok) {
+                      throw new Error("Failed to fetch data source");
+                    }
+                    
+                    const data = await response.json();
+                    console.log("Successfully fetched data source data:", data);
+                    
+                    // Update active data source and fields
+                    setActiveDataSource(data);
+                    const fields = Array.isArray(data.fields) ? data.fields : [];
+                    setActiveSourceFields(fields);
+                    
+                    // Create proper structure for dataSource
+                    const dataSource = {
+                      id: numericValue,
+                      field: ""
+                    };
+                    
+                    // Update the form with the selected data source
+                    handleFieldChange("dataSource", dataSource);
+                    
+                    // Reset the field mapping
+                    handleFieldChange("dataSource.field", "");
+                    
+                  } catch (error) {
+                    console.error("Error fetching data source:", error);
+                  }
                 }}
               >
                 <SelectTrigger>
