@@ -66,7 +66,7 @@ export function PropertiesPanel({
   }, [selectedElement]);
 
   const [activeTab, setActiveTab] = useState<
-    "basic" | "validation" | "data" | "advanced" | "actions" | "columns"
+    "basic" | "validation" | "data" | "advanced" | "actions"
   >("basic");
 
   const [activeDataSource, setActiveDataSource] = useState<any>(null);
@@ -236,6 +236,65 @@ export function PropertiesPanel({
     onElementUpdate(updated);
   };
 
+  // Helper function to initialize columns from data source
+  useEffect(() => {
+    if (
+      (localElement?.type === "datatable" || localElement?.type === "gallery") && 
+      localElement.dataSource?.id && 
+      activeSourceFields.length > 0 && 
+      (!localElement.columns || localElement.columns.length === 0)
+    ) {
+      // Create default columns from data source fields
+      const initialColumns = activeSourceFields
+        .filter(f => f.selected !== false)
+        .map(field => ({
+          field: field.name,
+          header: field.name,
+          visible: true,
+          sortable: field.type === "number" || field.type === "date",
+          width: 120
+        }));
+      handleElementPropertyChange("columns", initialColumns);
+    }
+  }, [localElement?.dataSource?.id, activeSourceFields]);
+
+  // Column management functions
+  const addColumn = () => {
+    const columns = [...(localElement?.columns || [])];
+    columns.push({
+      field: "",
+      header: "New Column",
+      visible: true,
+      sortable: false,
+      width: 120
+    });
+    handleElementPropertyChange("columns", columns);
+  };
+
+  const removeColumn = (index: number) => {
+    const columns = [...(localElement?.columns || [])];
+    columns.splice(index, 1);
+    handleElementPropertyChange("columns", columns);
+  };
+
+  const updateColumn = (index: number, field: string, value: any) => {
+    const columns = [...(localElement?.columns || [])];
+    columns[index] = { ...columns[index], [field]: value };
+    handleElementPropertyChange("columns", columns);
+  };
+
+  const moveColumn = (index: number, direction: "up" | "down") => {
+    if (!localElement?.columns) return;
+    
+    const columns = [...localElement.columns];
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    
+    if (newIndex < 0 || newIndex >= columns.length) return;
+    
+    [columns[index], columns[newIndex]] = [columns[newIndex], columns[index]];
+    handleElementPropertyChange("columns", columns);
+  };
+
   const renderDataMappingProperties = () => (
     <div className="space-y-4">
       <div className="mb-6">
@@ -286,60 +345,12 @@ export function PropertiesPanel({
         )}
       </div>
 
-      <div className="mb-6">
-        <div className="flex items-center space-x-2 mb-1">
-          <FormLabel>Map to Field</FormLabel>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                  <HelpCircle className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Select a field from the data source to map to this form field. The data will be loaded when the form is viewed.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <Select
-          value={localElement?.dataSource?.field || ""}
-          onValueChange={handleDataSourceFieldChange}
-          disabled={!localElement?.dataSource?.id}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select a field" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            {activeSourceFields.map((field) => (
-              <SelectItem key={field.name} value={field.name}>
-                <div className="flex items-center">
-                  <span>{field.name}</span>
-                  {field.type && (
-                    <Badge variant="outline" className="ml-2 text-xs">
-                      {field.type}
-                    </Badge>
-                  )}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {activeSourceFields.length === 0 && localElement?.dataSource?.id && (
-          <p className="text-xs text-muted-foreground mt-1">
-            No fields available in the selected data source.
-          </p>
-        )}
-      </div>
-
-      <FormField
-        control={form.control}
-        name="defaultValue"
-        render={({ field }) => (
-          <FormItem>
-            <div className="flex items-center space-x-2">
-              <FormLabel>Default Value</FormLabel>
+      {/* For regular form elements - show field mapping */}
+      {localElement?.type !== "datatable" && localElement?.type !== "gallery" && (
+        <>
+          <div className="mb-6">
+            <div className="flex items-center space-x-2 mb-1">
+              <FormLabel>Map to Field</FormLabel>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -348,27 +359,358 @@ export function PropertiesPanel({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p>Default value to show when no data is available. This will be overridden by data source values when available.</p>
+                    <p>Select a field from the data source to map to this form field. The data will be loaded when the form is viewed.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <FormControl>
-              <Input
-                {...field}
-                placeholder="Default value (optional)"
-                onChange={(e) => {
-                  field.onChange(e);
-                  handleFormFieldChange("defaultValue", e.target.value);
-                }}
-              />
-            </FormControl>
-            <FormDescription className="text-xs">
-              This value will be used if no data is provided from the data source.
-            </FormDescription>
-          </FormItem>
-        )}
-      />
+            <Select
+              value={localElement?.dataSource?.field || ""}
+              onValueChange={handleDataSourceFieldChange}
+              disabled={!localElement?.dataSource?.id}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a field" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {activeSourceFields.map((field) => (
+                  <SelectItem key={field.name} value={field.name}>
+                    <div className="flex items-center">
+                      <span>{field.name}</span>
+                      {field.type && (
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          {field.type}
+                        </Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {activeSourceFields.length === 0 && localElement?.dataSource?.id && (
+              <p className="text-xs text-muted-foreground mt-1">
+                No fields available in the selected data source.
+              </p>
+            )}
+          </div>
+
+          <FormField
+            control={form.control}
+            name="defaultValue"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center space-x-2">
+                  <FormLabel>Default Value</FormLabel>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                          <HelpCircle className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>Default value to show when no data is available. This will be overridden by data source values when available.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="Default value (optional)"
+                    onChange={(e) => {
+                      field.onChange(e);
+                      handleFormFieldChange("defaultValue", e.target.value);
+                    }}
+                  />
+                </FormControl>
+                <FormDescription className="text-xs">
+                  This value will be used if no data is provided from the data source.
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+        </>
+      )}
+
+      {/* For data tables and galleries - show column configuration */}
+      {(localElement?.type === "datatable" || localElement?.type === "gallery") && localElement?.dataSource?.id && (
+        <div className="mt-6 space-y-6">
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium">Column Configuration</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addColumn}
+                className="h-8"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add Column
+              </Button>
+            </div>
+
+            {(!localElement?.columns || localElement.columns.length === 0) && (
+              <div className="text-center py-4 border border-dashed rounded-md border-gray-300">
+                <p className="text-sm text-muted-foreground">
+                  No columns configured yet. Add columns or connect to a data source.
+                </p>
+              </div>
+            )}
+
+            {localElement?.columns && localElement.columns.length > 0 && (
+              <div>
+                {localElement.columns.map((column: any, index: number) => (
+                  <div 
+                    key={index} 
+                    className="mb-4 p-3 border rounded-md bg-gray-50 relative group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium">Column {index + 1}</h4>
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => moveColumn(index, "up")}
+                          disabled={index === 0}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-4 w-4"
+                          >
+                            <path d="m18 15-6-6-6 6" />
+                          </svg>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => moveColumn(index, "down")}
+                          disabled={index === localElement.columns.length - 1}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-4 w-4"
+                          >
+                            <path d="m6 9 6 6 6-6" />
+                          </svg>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeColumn(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 mb-2">
+                      <div>
+                        <FormLabel className="text-xs">Field</FormLabel>
+                        <Select
+                          value={column.field || ""}
+                          onValueChange={(value) => updateColumn(index, "field", value)}
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Select field" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {activeSourceFields.map((field) => (
+                              <SelectItem key={field.name} value={field.name}>
+                                {field.name}
+                              </SelectItem>
+                            ))}
+                            {activeSourceFields.length === 0 && (
+                              <SelectItem value="" disabled>
+                                No fields available
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <FormLabel className="text-xs">Header Text</FormLabel>
+                        <Input
+                          value={column.header || ""}
+                          onChange={(e) => updateColumn(index, "header", e.target.value)}
+                          className="h-8"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <FormLabel className="text-xs">Width (px)</FormLabel>
+                        <Input
+                          type="number"
+                          value={column.width || 120}
+                          onChange={(e) => updateColumn(index, "width", parseInt(e.target.value))}
+                          className="h-8"
+                        />
+                      </div>
+                      <div className="flex flex-col justify-end">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`visible-${index}`}
+                              checked={column.visible !== false}
+                              onCheckedChange={(checked) => updateColumn(index, "visible", !!checked)}
+                            />
+                            <label htmlFor={`visible-${index}`} className="text-xs cursor-pointer">
+                              Visible
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`sortable-${index}`}
+                              checked={column.sortable === true}
+                              onCheckedChange={(checked) => updateColumn(index, "sortable", !!checked)}
+                            />
+                            <label htmlFor={`sortable-${index}`} className="text-xs cursor-pointer">
+                              Sortable
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Table Settings */}
+            <div className="border-t pt-4 mt-6">
+              <h3 className="text-sm font-medium mb-3">Table Settings</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <FormLabel className="text-xs">Pagination</FormLabel>
+                  <Select
+                    value={localElement?.pagination?.enabled === false ? "disabled" : "enabled"}
+                    onValueChange={(value) => {
+                      handleNestedFieldChange("pagination.enabled", value === "enabled");
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pagination" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="enabled">Enabled</SelectItem>
+                      <SelectItem value="disabled">Disabled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {localElement?.pagination?.enabled !== false && (
+                  <div>
+                    <FormLabel className="text-xs">Rows Per Page</FormLabel>
+                    <Input
+                      type="number"
+                      value={localElement?.pagination?.pageSize || 10}
+                      onChange={(e) => {
+                        handleNestedFieldChange("pagination.pageSize", parseInt(e.target.value));
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <FormLabel className="text-xs">Filtering</FormLabel>
+                  <Select
+                    value={localElement?.filtering?.enabled === true ? "enabled" : "disabled"}
+                    onValueChange={(value) => {
+                      handleNestedFieldChange("filtering.enabled", value === "enabled");
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filtering" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="enabled">Enabled</SelectItem>
+                      <SelectItem value="disabled">Disabled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <FormLabel className="text-xs">Sorting</FormLabel>
+                  <Select
+                    value={localElement?.sorting?.enabled === false ? "disabled" : "enabled"}
+                    onValueChange={(value) => {
+                      handleNestedFieldChange("sorting.enabled", value === "enabled");
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sorting" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="enabled">Enabled</SelectItem>
+                      <SelectItem value="disabled">Disabled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {localElement?.type === "gallery" && (
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <FormLabel className="text-xs">Gallery Layout</FormLabel>
+                    <Select
+                      value={localElement.galleryLayout || "grid"}
+                      onValueChange={(value) => {
+                        handleElementPropertyChange("galleryLayout", value);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Layout" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="grid">Grid</SelectItem>
+                        <SelectItem value="list">List</SelectItem>
+                        <SelectItem value="carousel">Carousel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <FormLabel className="text-xs">Items Per Row</FormLabel>
+                    <Input
+                      type="number"
+                      value={localElement.itemsPerRow || 3}
+                      onChange={(e) => {
+                        handleElementPropertyChange("itemsPerRow", parseInt(e.target.value));
+                      }}
+                      min={1}
+                      max={6}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -858,341 +1200,7 @@ export function PropertiesPanel({
     </div>
   );
   
-  // Function to manage column configuration for data tables and galleries
-  const renderColumnsProperties = () => {
-    // Initialize columns from data source if needed
-    useEffect(() => {
-      if (
-        (localElement?.type === "datatable" || localElement?.type === "gallery") && 
-        localElement.dataSource?.id && 
-        activeSourceFields.length > 0 && 
-        (!localElement.columns || localElement.columns.length === 0)
-      ) {
-        // Create default columns from data source fields
-        const initialColumns = activeSourceFields
-          .filter(f => f.selected !== false)
-          .map(field => ({
-            field: field.name,
-            header: field.name,
-            visible: true,
-            sortable: field.type === "number" || field.type === "date",
-            width: 120
-          }));
-        handleElementPropertyChange("columns", initialColumns);
-      }
-    }, [localElement?.dataSource?.id, activeSourceFields]);
 
-    const addColumn = () => {
-      const columns = [...(localElement?.columns || [])];
-      columns.push({
-        field: "",
-        header: "New Column",
-        visible: true,
-        sortable: false,
-        width: 120
-      });
-      handleElementPropertyChange("columns", columns);
-    };
-
-    const removeColumn = (index: number) => {
-      const columns = [...(localElement?.columns || [])];
-      columns.splice(index, 1);
-      handleElementPropertyChange("columns", columns);
-    };
-
-    const updateColumn = (index: number, field: string, value: any) => {
-      const columns = [...(localElement?.columns || [])];
-      columns[index] = { ...columns[index], [field]: value };
-      handleElementPropertyChange("columns", columns);
-    };
-
-    const moveColumn = (index: number, direction: "up" | "down") => {
-      if (!localElement?.columns) return;
-      
-      const columns = [...localElement.columns];
-      const newIndex = direction === "up" ? index - 1 : index + 1;
-      
-      if (newIndex < 0 || newIndex >= columns.length) return;
-      
-      [columns[index], columns[newIndex]] = [columns[newIndex], columns[index]];
-      handleElementPropertyChange("columns", columns);
-    };
-
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium">Column Configuration</h3>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addColumn}
-            className="h-8"
-          >
-            <Plus className="h-4 w-4 mr-1" /> Add Column
-          </Button>
-        </div>
-
-        {(!localElement?.columns || localElement.columns.length === 0) && (
-          <div className="text-center py-4 border border-dashed rounded-md border-gray-300">
-            <p className="text-sm text-muted-foreground">
-              No columns configured yet. Add columns or connect to a data source.
-            </p>
-          </div>
-        )}
-
-        {localElement?.columns && localElement.columns.length > 0 && (
-          <div>
-            {localElement.columns.map((column, index) => (
-              <div 
-                key={index} 
-                className="mb-4 p-3 border rounded-md bg-gray-50 relative group"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium">Column {index + 1}</h4>
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => moveColumn(index, "up")}
-                      disabled={index === 0}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4"
-                      >
-                        <path d="m18 15-6-6-6 6" />
-                      </svg>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => moveColumn(index, "down")}
-                      disabled={index === localElement.columns.length - 1}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4"
-                      >
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => removeColumn(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3 mb-2">
-                  <div>
-                    <FormLabel className="text-xs">Field</FormLabel>
-                    <Select
-                      value={column.field || ""}
-                      onValueChange={(value) => updateColumn(index, "field", value)}
-                    >
-                      <SelectTrigger className="h-8">
-                        <SelectValue placeholder="Select field" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {activeSourceFields.map((field) => (
-                          <SelectItem key={field.name} value={field.name}>
-                            {field.name}
-                          </SelectItem>
-                        ))}
-                        {activeSourceFields.length === 0 && (
-                          <SelectItem value="" disabled>
-                            No fields available
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <FormLabel className="text-xs">Header Text</FormLabel>
-                    <Input
-                      value={column.header || ""}
-                      onChange={(e) => updateColumn(index, "header", e.target.value)}
-                      className="h-8"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <FormLabel className="text-xs">Width (px)</FormLabel>
-                    <Input
-                      type="number"
-                      value={column.width || 120}
-                      onChange={(e) => updateColumn(index, "width", parseInt(e.target.value))}
-                      className="h-8"
-                    />
-                  </div>
-                  <div className="flex flex-col justify-end">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`visible-${index}`}
-                          checked={column.visible !== false}
-                          onCheckedChange={(checked) => updateColumn(index, "visible", !!checked)}
-                        />
-                        <label htmlFor={`visible-${index}`} className="text-xs cursor-pointer">
-                          Visible
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`sortable-${index}`}
-                          checked={column.sortable === true}
-                          onCheckedChange={(checked) => updateColumn(index, "sortable", !!checked)}
-                        />
-                        <label htmlFor={`sortable-${index}`} className="text-xs cursor-pointer">
-                          Sortable
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        {/* Table Settings */}
-        <div className="border-t pt-4 mt-6">
-          <h3 className="text-sm font-medium mb-3">Table Settings</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <FormLabel className="text-xs">Pagination</FormLabel>
-              <Select
-                value={localElement?.pagination?.enabled === false ? "disabled" : "enabled"}
-                onValueChange={(value) => {
-                  handleNestedFieldChange("pagination.enabled", value === "enabled");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pagination" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="enabled">Enabled</SelectItem>
-                  <SelectItem value="disabled">Disabled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {localElement?.pagination?.enabled !== false && (
-              <div>
-                <FormLabel className="text-xs">Rows Per Page</FormLabel>
-                <Input
-                  type="number"
-                  value={localElement?.pagination?.pageSize || 10}
-                  onChange={(e) => {
-                    handleNestedFieldChange("pagination.pageSize", parseInt(e.target.value));
-                  }}
-                />
-              </div>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 mt-3">
-            <div>
-              <FormLabel className="text-xs">Filtering</FormLabel>
-              <Select
-                value={localElement?.filtering?.enabled === true ? "enabled" : "disabled"}
-                onValueChange={(value) => {
-                  handleNestedFieldChange("filtering.enabled", value === "enabled");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Filtering" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="enabled">Enabled</SelectItem>
-                  <SelectItem value="disabled">Disabled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <FormLabel className="text-xs">Sorting</FormLabel>
-              <Select
-                value={localElement?.sorting?.enabled === false ? "disabled" : "enabled"}
-                onValueChange={(value) => {
-                  handleNestedFieldChange("sorting.enabled", value === "enabled");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sorting" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="enabled">Enabled</SelectItem>
-                  <SelectItem value="disabled">Disabled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          {localElement?.type === "gallery" && (
-            <div className="grid grid-cols-2 gap-4 mt-3">
-              <div>
-                <FormLabel className="text-xs">Gallery Layout</FormLabel>
-                <Select
-                  value={localElement.galleryLayout || "grid"}
-                  onValueChange={(value) => {
-                    handleElementPropertyChange("galleryLayout", value);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Layout" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="grid">Grid</SelectItem>
-                    <SelectItem value="list">List</SelectItem>
-                    <SelectItem value="carousel">Carousel</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <FormLabel className="text-xs">Items Per Row</FormLabel>
-                <Input
-                  type="number"
-                  value={localElement.itemsPerRow || 3}
-                  onChange={(e) => {
-                    handleElementPropertyChange("itemsPerRow", parseInt(e.target.value));
-                  }}
-                  min={1}
-                  max={6}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   const renderAdvancedProperties = () => (
     <div className="space-y-4">
@@ -1439,18 +1447,7 @@ export function PropertiesPanel({
               Actions
             </button>
           )}
-          {(selectedElement.type === "datatable" || selectedElement.type === "gallery") && (
-            <button
-              className={`px-3 py-2 text-sm font-medium ${
-                activeTab === "columns"
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-              onClick={() => setActiveTab("columns")}
-            >
-              Columns
-            </button>
-          )}
+
           <button
             className={`px-3 py-2 text-sm font-medium ${
               activeTab === "advanced"
@@ -1485,7 +1482,7 @@ export function PropertiesPanel({
                 formElements={form.getValues().elements || []}
               />
             )}
-            {activeTab === "columns" && (selectedElement.type === "datatable" || selectedElement.type === "gallery") && renderColumnsProperties()}
+
             {activeTab === "advanced" && renderAdvancedProperties()}
           </form>
         </Form>
