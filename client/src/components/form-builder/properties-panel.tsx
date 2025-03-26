@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
-import { Plus, RefreshCw, Code, Info, HelpCircle } from "lucide-react";
+import { Plus, RefreshCw, Code, Info, HelpCircle, Trash2, Table, Settings, PlusCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ActionEditor } from "./action-editor";
 import { ButtonPropertiesEditor } from "./button-properties-editor";
@@ -66,7 +66,7 @@ export function PropertiesPanel({
   }, [selectedElement]);
 
   const [activeTab, setActiveTab] = useState<
-    "basic" | "validation" | "data" | "advanced" | "actions"
+    "basic" | "validation" | "data" | "advanced" | "actions" | "columns"
   >("basic");
 
   const [activeDataSource, setActiveDataSource] = useState<any>(null);
