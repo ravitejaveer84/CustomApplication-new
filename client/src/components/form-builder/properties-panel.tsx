@@ -28,6 +28,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { Plus, RefreshCw, Code, Info, HelpCircle, Trash2, Table, Settings, PlusCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ActionEditor } from "./action-editor";
+import { ButtonPropertiesEditor } from "./button-properties-editor";
 
 // Define a type for data source fields
 interface DataSourceField {
@@ -35,9 +38,6 @@ interface DataSourceField {
   type: string;
   selected: boolean;
 }
-import { useQuery } from "@tanstack/react-query";
-import { ActionEditor } from "./action-editor";
-import { ButtonPropertiesEditor } from "./button-properties-editor";
 
 interface PropertiesPanelProps {
   selectedElement: FormElement | null;
@@ -64,6 +64,7 @@ export function PropertiesPanel({
       </div>
     );
   }
+  
   const [localElement, setLocalElement] = useState<FormElement | null>(
     selectedElement,
   );
@@ -95,7 +96,7 @@ export function PropertiesPanel({
         errorMessage: "",
       },
       dataSource: {
-        id: "",
+        id: null,
         field: "",
       },
       cssClass: "",
@@ -206,7 +207,7 @@ export function PropertiesPanel({
       setActiveSourceFields([]);
       const updated = {
         ...localElement,
-        dataSource: { id: 0, field: "" },
+        dataSource: { id: null, field: "" },
       };
       setLocalElement(updated);
       onElementUpdate(updated);
@@ -235,35 +236,13 @@ export function PropertiesPanel({
     const updated = {
       ...localElement,
       dataSource: {
-        id: localElement?.dataSource?.id || 0,
+        id: localElement?.dataSource?.id || null,
         field: fieldValue,
       },
     };
     setLocalElement(updated);
     onElementUpdate(updated);
   };
-
-  // Helper function to initialize columns from data source
-  useEffect(() => {
-    if (
-      (localElement?.type === "datatable" || localElement?.type === "gallery") && 
-      localElement.dataSource?.id && 
-      activeSourceFields.length > 0 && 
-      (!localElement.columns || localElement.columns.length === 0)
-    ) {
-      // Create default columns from data source fields
-      const initialColumns = activeSourceFields
-        .filter(f => f.selected !== false)
-        .map(field => ({
-          field: field.name,
-          header: field.name,
-          visible: true,
-          sortable: field.type === "number" || field.type === "date",
-          width: 120
-        }));
-      handleElementPropertyChange("columns", initialColumns);
-    }
-  }, [localElement?.dataSource?.id, activeSourceFields]);
 
   // Column management functions
   const addColumn = () => {
@@ -302,428 +281,30 @@ export function PropertiesPanel({
     handleElementPropertyChange("columns", columns);
   };
 
-  const renderDataMappingProperties = () => (
-    <div className="space-y-4">
-      <div className="mb-6">
-        <div className="flex items-center space-x-2 mb-1">
-          <FormLabel>Data Source</FormLabel>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                  <HelpCircle className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Connect this field to a data source to populate it with external data.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <Select
-          value={
-            !localElement?.dataSource?.id || localElement.dataSource.id === 0
-              ? "none"
-              : localElement.dataSource.id.toString()
-          }
-          onValueChange={handleDataSourceChange}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select a data source" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            {dataSources.map((source) => (
-              <SelectItem key={source.id} value={source.id.toString()}>
-                <div className="flex items-center">
-                  <span>{source.name}</span>
-                  <Badge variant="outline" className="ml-2 text-xs">
-                    {source.type}
-                  </Badge>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {dataSources.length === 0 && (
-          <p className="text-xs text-muted-foreground mt-1">
-            No data sources available. Add data sources from the Data Sources page.
-          </p>
-        )}
-      </div>
-
-      {/* For regular form elements - show field mapping */}
-      {localElement?.type !== "datatable" && localElement?.type !== "gallery" && (
-        <>
-          <div className="mb-6">
-            <div className="flex items-center space-x-2 mb-1">
-              <FormLabel>Map to Field</FormLabel>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                      <HelpCircle className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p>Select a field from the data source to map to this form field. The data will be loaded when the form is viewed.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <Select
-              value={localElement?.dataSource?.field || ""}
-              onValueChange={handleDataSourceFieldChange}
-              disabled={!localElement?.dataSource?.id}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a field" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {activeSourceFields.map((field) => (
-                  <SelectItem key={field.name} value={field.name}>
-                    <div className="flex items-center">
-                      <span>{field.name}</span>
-                      {field.type && (
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          {field.type}
-                        </Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {activeSourceFields.length === 0 && localElement?.dataSource?.id && (
-              <p className="text-xs text-muted-foreground mt-1">
-                No fields available in the selected data source.
-              </p>
-            )}
-          </div>
-
-          <FormField
-            control={form.control}
-            name="defaultValue"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-center space-x-2">
-                  <FormLabel>Default Value</FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                          <HelpCircle className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>Default value to show when no data is available. This will be overridden by data source values when available.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <FormControl>
-                  <Input
-                    {...field}
-                    placeholder="Default value (optional)"
-                    onChange={(e) => {
-                      field.onChange(e);
-                      handleFormFieldChange("defaultValue", e.target.value);
-                    }}
-                  />
-                </FormControl>
-                <FormDescription className="text-xs">
-                  This value will be used if no data is provided from the data source.
-                </FormDescription>
-              </FormItem>
-            )}
-          />
-        </>
-      )}
-
-      {/* For data tables and galleries - show column configuration */}
-      {(localElement?.type === "datatable" || localElement?.type === "gallery") && localElement?.dataSource?.id && (
-        <div className="mt-6 space-y-6">
-          <div className="border-t pt-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium">Column Configuration</h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addColumn}
-                className="h-8"
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Column
-              </Button>
-            </div>
-
-            {(!localElement?.columns || localElement.columns.length === 0) && (
-              <div className="text-center py-4 border border-dashed rounded-md border-gray-300">
-                <p className="text-sm text-muted-foreground">
-                  No columns configured yet. Add columns or connect to a data source.
-                </p>
-              </div>
-            )}
-
-            {localElement?.columns && localElement.columns.length > 0 && (
-              <div>
-                {localElement.columns.map((column: any, index: number) => (
-                  <div 
-                    key={index} 
-                    className="mb-4 p-3 border rounded-md bg-gray-50 relative group"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-medium">Column {index + 1}</h4>
-                      <div className="flex items-center space-x-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => moveColumn(index, "up")}
-                          disabled={index === 0}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="h-4 w-4"
-                          >
-                            <path d="m18 15-6-6-6 6" />
-                          </svg>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => moveColumn(index, "down")}
-                          disabled={index === localElement.columns.length - 1}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="h-4 w-4"
-                          >
-                            <path d="m6 9 6 6 6-6" />
-                          </svg>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removeColumn(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 mb-2">
-                      <div>
-                        <FormLabel className="text-xs">Field</FormLabel>
-                        <Select
-                          value={column.field || ""}
-                          onValueChange={(value) => updateColumn(index, "field", value)}
-                        >
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Select field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {activeSourceFields.map((field) => (
-                              <SelectItem key={field.name} value={field.name}>
-                                {field.name}
-                              </SelectItem>
-                            ))}
-                            {activeSourceFields.length === 0 && (
-                              <SelectItem value="" disabled>
-                                No fields available
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <FormLabel className="text-xs">Header Text</FormLabel>
-                        <Input
-                          value={column.header || ""}
-                          onChange={(e) => updateColumn(index, "header", e.target.value)}
-                          className="h-8"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <FormLabel className="text-xs">Width (px)</FormLabel>
-                        <Input
-                          type="number"
-                          value={column.width || 120}
-                          onChange={(e) => updateColumn(index, "width", parseInt(e.target.value))}
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="flex flex-col justify-end">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`visible-${index}`}
-                              checked={column.visible !== false}
-                              onCheckedChange={(checked) => updateColumn(index, "visible", !!checked)}
-                            />
-                            <label htmlFor={`visible-${index}`} className="text-xs cursor-pointer">
-                              Visible
-                            </label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`sortable-${index}`}
-                              checked={column.sortable === true}
-                              onCheckedChange={(checked) => updateColumn(index, "sortable", !!checked)}
-                            />
-                            <label htmlFor={`sortable-${index}`} className="text-xs cursor-pointer">
-                              Sortable
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* Table Settings */}
-            <div className="border-t pt-4 mt-6">
-              <h3 className="text-sm font-medium mb-3">Table Settings</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <FormLabel className="text-xs">Pagination</FormLabel>
-                  <Select
-                    value={localElement?.pagination?.enabled === false ? "disabled" : "enabled"}
-                    onValueChange={(value) => {
-                      handleNestedFieldChange("pagination.enabled", value === "enabled");
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pagination" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="enabled">Enabled</SelectItem>
-                      <SelectItem value="disabled">Disabled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {localElement?.pagination?.enabled !== false && (
-                  <div>
-                    <FormLabel className="text-xs">Rows Per Page</FormLabel>
-                    <Input
-                      type="number"
-                      value={localElement?.pagination?.pageSize || 10}
-                      onChange={(e) => {
-                        handleNestedFieldChange("pagination.pageSize", parseInt(e.target.value));
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 mt-3">
-                <div>
-                  <FormLabel className="text-xs">Filtering</FormLabel>
-                  <Select
-                    value={localElement?.filtering?.enabled === true ? "enabled" : "disabled"}
-                    onValueChange={(value) => {
-                      handleNestedFieldChange("filtering.enabled", value === "enabled");
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Filtering" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="enabled">Enabled</SelectItem>
-                      <SelectItem value="disabled">Disabled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <FormLabel className="text-xs">Sorting</FormLabel>
-                  <Select
-                    value={localElement?.sorting?.enabled === false ? "disabled" : "enabled"}
-                    onValueChange={(value) => {
-                      handleNestedFieldChange("sorting.enabled", value === "enabled");
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sorting" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="enabled">Enabled</SelectItem>
-                      <SelectItem value="disabled">Disabled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              {localElement?.type === "gallery" && (
-                <div className="grid grid-cols-2 gap-4 mt-3">
-                  <div>
-                    <FormLabel className="text-xs">Gallery Layout</FormLabel>
-                    <Select
-                      value={localElement.galleryLayout || "grid"}
-                      onValueChange={(value) => {
-                        handleElementPropertyChange("galleryLayout", value);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Layout" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="grid">Grid</SelectItem>
-                        <SelectItem value="list">List</SelectItem>
-                        <SelectItem value="carousel">Carousel</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <FormLabel className="text-xs">Items Per Row</FormLabel>
-                    <Input
-                      type="number"
-                      value={localElement.itemsPerRow || 3}
-                      onChange={(e) => {
-                        handleElementPropertyChange("itemsPerRow", parseInt(e.target.value));
-                      }}
-                      min={1}
-                      max={6}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  // Helper function to initialize columns from data source
+  useEffect(() => {
+    if (
+      (localElement?.type === "datatable" || localElement?.type === "gallery") && 
+      localElement.dataSource?.id && 
+      activeSourceFields.length > 0 && 
+      (!localElement.columns || localElement.columns.length === 0)
+    ) {
+      // Create default columns from data source fields
+      const initialColumns = activeSourceFields
+        .filter(f => f.selected !== false)
+        .map(field => ({
+          field: field.name,
+          header: field.name,
+          visible: true,
+          sortable: field.type === "number" || field.type === "date",
+          width: 120
+        }));
+      handleElementPropertyChange("columns", initialColumns);
+    }
+  }, [localElement?.dataSource?.id, activeSourceFields]);
 
   const renderBasicProperties = () => (
     <div className="space-y-4">
-      {/* Label Field */}
       <FormField
         control={form.control}
         name="label"
@@ -733,9 +314,10 @@ export function PropertiesPanel({
             <FormControl>
               <Input
                 {...field}
+                value={field.value || ""}
                 onChange={(e) => {
                   field.onChange(e);
-                  handleElementPropertyChange("label", e.target.value);
+                  handleFormFieldChange("label", e.target.value);
                 }}
               />
             </FormControl>
@@ -743,19 +325,42 @@ export function PropertiesPanel({
         )}
       />
 
-      {/* Field Name */}
       <FormField
         control={form.control}
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Field Name</FormLabel>
+            <FormLabel>Name</FormLabel>
             <FormControl>
               <Input
                 {...field}
+                value={field.value || ""}
                 onChange={(e) => {
                   field.onChange(e);
-                  handleElementPropertyChange("name", e.target.value);
+                  handleFormFieldChange("name", e.target.value);
+                }}
+              />
+            </FormControl>
+            <FormDescription className="text-xs">
+              This is the field name that will be used when submitting the form
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="placeholder"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Placeholder</FormLabel>
+            <FormControl>
+              <Input
+                {...field}
+                value={field.value || ""}
+                onChange={(e) => {
+                  field.onChange(e);
+                  handleFormFieldChange("placeholder", e.target.value);
                 }}
               />
             </FormControl>
@@ -763,31 +368,6 @@ export function PropertiesPanel({
         )}
       />
 
-      {/* Placeholder Field */}
-      {(selectedElement.type === "text" ||
-        selectedElement.type === "number" ||
-        selectedElement.type === "textarea") && (
-        <FormField
-          control={form.control}
-          name="placeholder"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Placeholder</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  onChange={(e) => {
-                    field.onChange(e);
-                    handleElementPropertyChange("placeholder", e.target.value);
-                  }}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-      )}
-
-      {/* Help Text Field */}
       <FormField
         control={form.control}
         name="helpText"
@@ -797,676 +377,874 @@ export function PropertiesPanel({
             <FormControl>
               <Input
                 {...field}
-                placeholder="Add help text here (optional)"
+                value={field.value || ""}
                 onChange={(e) => {
                   field.onChange(e);
-                  handleElementPropertyChange("helpText", e.target.value);
+                  handleFormFieldChange("helpText", e.target.value);
                 }}
               />
             </FormControl>
+            <FormDescription className="text-xs">
+              This text will be displayed below the field to provide additional
+              information
+            </FormDescription>
           </FormItem>
         )}
       />
 
-      {/* Required Field */}
       <FormField
         control={form.control}
         name="required"
         render={({ field }) => (
-          <FormItem className="flex items-center space-x-2 space-y-0">
+          <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-2 border rounded-md">
             <FormControl>
               <Checkbox
                 checked={field.value}
                 onCheckedChange={(checked) => {
                   field.onChange(checked);
-                  handleElementPropertyChange("required", checked);
+                  handleFormFieldChange("required", checked);
                 }}
               />
             </FormControl>
-            <div className="flex items-center space-x-2">
-              <FormLabel className="text-sm font-medium cursor-pointer">
-                Required
-              </FormLabel>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                      <HelpCircle className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p>Make this field mandatory. Form submission will be prevented if this field is empty.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div className="space-y-1 leading-none">
+              <FormLabel>Required</FormLabel>
+              <FormDescription className="text-xs">
+                If checked, this field must be filled before the form can be
+                submitted
+              </FormDescription>
             </div>
           </FormItem>
         )}
       />
-
-      {/* Options for dropdown, radio, or checkbox */}
-      {(selectedElement.type === "dropdown" ||
-        selectedElement.type === "radio" ||
-        selectedElement.type === "checkbox") && (
-        <div className="mt-4">
-          {/* Option Type Selection */}
-          <div className="mb-3">
-            <FormLabel className="mb-2">Options Source</FormLabel>
-            <Select
-              value={selectedElement.optionsSource || "static"}
-              onValueChange={(value) => {
-                // Update the options source
-                handleElementPropertyChange("optionsSource", value);
-                
-                // When switching to data source mode, ensure we have reasonable defaults
-                if (value === "dataSource") {
-                  // If there's no dataSourceId set, try to get it from the dataSource.id field for compatibility
-                  if (!selectedElement.dataSourceId && selectedElement.dataSource?.id) {
-                    handleElementPropertyChange("dataSourceId", selectedElement.dataSource.id);
-                  }
-                  
-                  // If there's no displayField set, try to get it from the dataSource.field for compatibility
-                  if (!selectedElement.displayField && selectedElement.dataSource?.field) {
-                    handleElementPropertyChange("displayField", selectedElement.dataSource.field);
-                  }
-                  
-                  console.log("Switched to data source mode");
-                } 
-                else if (value === "static") {
-                  // When switching to static mode, ensure we have at least one option
-                  if (!selectedElement.options || selectedElement.options.length === 0) {
-                    handleElementPropertyChange("options", [
-                      { label: "Option 1", value: "option1" }
-                    ]);
-                  }
-                  console.log("Switched to static mode with options:", selectedElement.options);
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select options source" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="static">Static Options</SelectItem>
-                <SelectItem value="dataSource">Data Source</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Static Options */}
-          {selectedElement.optionsSource !== "dataSource" && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <FormLabel>Static Options</FormLabel>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                        <HelpCircle className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Define fixed options that will always appear in this dropdown.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <div className="space-y-2 mt-2">
-                {/* Handle case where options is undefined or empty */}
-                {(selectedElement.options && selectedElement.options.length > 0) ? (
-                  // Show options if they exist
-                  selectedElement.options.map(
-                    (option: { label: string; value: string }, index: number) => (
-                      <div key={index} className="flex gap-2">
-                        <Input
-                          value={option.label}
-                          onChange={(e) => {
-                            const newOptions = [...(selectedElement.options || [])];
-                            newOptions[index] = {
-                              ...newOptions[index],
-                              label: e.target.value,
-                            };
-                            handleElementPropertyChange("options", newOptions);
-                          }}
-                          placeholder="Option label"
-                          className="flex-1"
-                        />
-                        <Input
-                          value={option.value}
-                          onChange={(e) => {
-                            const newOptions = [...(selectedElement.options || [])];
-                            newOptions[index] = {
-                              ...newOptions[index],
-                              value: e.target.value,
-                            };
-                            handleElementPropertyChange("options", newOptions);
-                          }}
-                          placeholder="Value"
-                          className="flex-1"
-                        />
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault(); // Prevent form submission
-                            e.stopPropagation(); // Stop event propagation
-                            const newOptions = [...(selectedElement.options || [])];
-                            newOptions.splice(index, 1);
-                            handleElementPropertyChange("options", newOptions);
-                          }}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                        </Button>
-                      </div>
-                    )
-                  )
-                ) : (
-                  // Show message if no options exist
-                  <div className="text-center text-muted-foreground py-2">
-                    No options added yet. Click below to add options.
-                  </div>
-                )}
-                
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full mt-2"
-                  onClick={(e) => {
-                    e.preventDefault(); // Prevent form submission
-                    e.stopPropagation(); // Stop event propagation
-                    
-                    // Create first option or add to existing options
-                    const currentOptions = selectedElement.options || [];
-                    const newOptions = [
-                      ...currentOptions,
-                      {
-                        label: "New Option",
-                        value: `option${currentOptions.length + 1}`,
-                      },
-                    ];
-                    handleElementPropertyChange("options", newOptions);
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Option
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Data Source Options */}
-          {selectedElement.optionsSource === "dataSource" && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <FormLabel>Data Source</FormLabel>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                        <HelpCircle className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Connect this dropdown to a data source to dynamically populate its options.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-
-              <Select
-                value={selectedElement.dataSourceId?.toString() || ""}
-                onValueChange={(value) => {
-                  // Store the numeric dataSourceId
-                  const sourceId = parseInt(value);
-                  handleElementPropertyChange("dataSourceId", sourceId);
-                  // Also set dataSource.id for compatibility
-                  handleElementPropertyChange("dataSource", { 
-                    ...(selectedElement.dataSource || {}), 
-                    id: sourceId 
-                  });
-                  // Reset field selections when data source changes
-                  handleElementPropertyChange("valueField", "");
-                  handleElementPropertyChange("displayField", "");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select data source" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dataSources.map((ds) => (
-                    <SelectItem key={ds.id} value={ds.id.toString()}>
-                      {ds.name} {ds.type && <Badge variant="outline" className="ml-2">{ds.type}</Badge>}
-                    </SelectItem>
-                  ))}
-                  {dataSources.length === 0 && (
-                    <div className="p-2 text-center text-sm text-muted-foreground">
-                      No data sources available. Please create one first.
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-
-              {selectedElement.dataSourceId && (
-                <>
-                  <div>
-                    <FormLabel>Display Field</FormLabel>
-                    <Select
-                      value={selectedElement.displayField || ""}
-                      onValueChange={(value) => {
-                        handleElementPropertyChange("displayField", value);
-                        // Also update old format for backward compatibility
-                        handleElementPropertyChange("dataSource", { 
-                          ...(selectedElement.dataSource || {}), 
-                          field: value 
-                        });
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select field to display" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedDataSource?.fields?.filter((f: DataSourceField) => f.selected).map((field: DataSourceField) => (
-                          <SelectItem key={field.name} value={field.name}>
-                            {field.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <FormLabel>Value Field</FormLabel>
-                    <Select
-                      value={selectedElement.valueField || ""}
-                      onValueChange={(value) => {
-                        handleElementPropertyChange("valueField", value);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select field for value" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedDataSource?.fields?.filter((f: DataSourceField) => f.selected).map((field: DataSourceField) => (
-                          <SelectItem key={field.name} value={field.name}>
-                            {field.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 
   const renderValidationProperties = () => (
     <div className="space-y-4">
-      {/* Min Length Field */}
-      {(selectedElement.type === "text" ||
-        selectedElement.type === "textarea") && (
-        <FormField
-          control={form.control}
-          name="validation.minLength"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex items-center space-x-2">
-                <FormLabel>Min Length</FormLabel>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                        <HelpCircle className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Set the minimum number of characters required for this field.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <FormControl>
-                <Input
-                  type="number"
-                  {...field}
-                  onChange={(e) => {
-                    field.onChange(e);
-                    handleNestedFieldChange(
-                      "validation.minLength",
-                      parseInt(e.target.value),
-                    );
-                  }}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-      )}
+      <FormField
+        control={form.control}
+        name="validation.minLength"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Minimum Length</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                min={0}
+                {...field}
+                value={
+                  field.value !== undefined && field.value !== null
+                    ? field.value
+                    : ""
+                }
+                onChange={(e) => {
+                  const value = e.target.value
+                    ? parseInt(e.target.value)
+                    : null;
+                  field.onChange(value);
+                  handleNestedFieldChange("validation.minLength", value);
+                }}
+              />
+            </FormControl>
+            <FormDescription className="text-xs">
+              Minimum number of characters required (0 = no minimum)
+            </FormDescription>
+          </FormItem>
+        )}
+      />
 
-      {/* Max Length Field */}
-      {(selectedElement.type === "text" ||
-        selectedElement.type === "textarea") && (
-        <FormField
-          control={form.control}
-          name="validation.maxLength"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex items-center space-x-2">
-                <FormLabel>Max Length</FormLabel>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                        <HelpCircle className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Set the maximum number of characters allowed for this field.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <FormControl>
-                <Input
-                  type="number"
-                  {...field}
-                  onChange={(e) => {
-                    field.onChange(e);
-                    handleNestedFieldChange(
-                      "validation.maxLength",
-                      parseInt(e.target.value),
-                    );
-                  }}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-      )}
+      <FormField
+        control={form.control}
+        name="validation.maxLength"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Maximum Length</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                min={0}
+                {...field}
+                value={
+                  field.value !== undefined && field.value !== null
+                    ? field.value
+                    : ""
+                }
+                onChange={(e) => {
+                  const value = e.target.value
+                    ? parseInt(e.target.value)
+                    : null;
+                  field.onChange(value);
+                  handleNestedFieldChange("validation.maxLength", value);
+                }}
+              />
+            </FormControl>
+            <FormDescription className="text-xs">
+              Maximum number of characters allowed (0 = no maximum)
+            </FormDescription>
+          </FormItem>
+        )}
+      />
 
-      {/* Pattern Field */}
-      {selectedElement.type === "text" && (
-        <FormField
-          control={form.control}
-          name="validation.pattern"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex items-center space-x-2">
-                <FormLabel>Pattern</FormLabel>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                        <HelpCircle className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Define a regular expression pattern that the input must match (e.g., email format validation).</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <FormControl>
-                <Input
-                  {...field}
-                  placeholder="Regular expression"
-                  onChange={(e) => {
-                    field.onChange(e);
-                    handleNestedFieldChange("validation.pattern", e.target.value);
-                  }}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-      )}
+      <FormField
+        control={form.control}
+        name="validation.pattern"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Validation Pattern</FormLabel>
+            <FormControl>
+              <Input
+                {...field}
+                value={field.value || ""}
+                onChange={(e) => {
+                  field.onChange(e);
+                  handleNestedFieldChange(
+                    "validation.pattern",
+                    e.target.value,
+                  );
+                }}
+              />
+            </FormControl>
+            <FormDescription className="text-xs">
+              Regular expression pattern for validation (leave empty if not
+              needed)
+            </FormDescription>
+          </FormItem>
+        )}
+      />
 
-      {/* Error Message Field */}
       <FormField
         control={form.control}
         name="validation.errorMessage"
         render={({ field }) => (
           <FormItem>
-            <div className="flex items-center space-x-2">
-              <FormLabel>Error Message</FormLabel>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                      <HelpCircle className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p>Custom message to display when validation fails. If left empty, a default message will be used.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+            <FormLabel>Error Message</FormLabel>
             <FormControl>
               <Input
                 {...field}
-                placeholder="Error message for invalid input"
+                value={field.value || ""}
                 onChange={(e) => {
                   field.onChange(e);
-                  handleNestedFieldChange("validation.errorMessage", e.target.value);
+                  handleNestedFieldChange(
+                    "validation.errorMessage",
+                    e.target.value,
+                  );
                 }}
               />
             </FormControl>
+            <FormDescription className="text-xs">
+              Custom error message to display when validation fails
+            </FormDescription>
           </FormItem>
         )}
       />
     </div>
   );
-  
-
 
   const renderAdvancedProperties = () => (
     <div className="space-y-4">
-      {/* CSS Class Field */}
       <FormField
         control={form.control}
         name="cssClass"
         render={({ field }) => (
           <FormItem>
-            <div className="flex items-center space-x-2">
-              <FormLabel>CSS Class</FormLabel>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                      <HelpCircle className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p>Add custom CSS classes to style this element. Multiple classes can be separated by spaces.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+            <FormLabel>CSS Class</FormLabel>
             <FormControl>
               <Input
                 {...field}
-                placeholder="Additional CSS classes"
+                value={field.value || ""}
                 onChange={(e) => {
                   field.onChange(e);
                   handleFormFieldChange("cssClass", e.target.value);
                 }}
               />
             </FormControl>
+            <FormDescription className="text-xs">
+              Custom CSS classes to apply to this element (space-separated)
+            </FormDescription>
           </FormItem>
         )}
       />
 
-      {/* Visibility Condition */}
-      <div>
-        <div className="flex items-center space-x-2 mb-1">
-          <FormLabel>Visibility Condition</FormLabel>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
-                  <HelpCircle className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Control when this field should be shown based on the value of another field.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <div className="flex items-center space-x-2 mt-1">
-          <Select
-            value={selectedElement.visibilityCondition?.field || ""}
-            onValueChange={(value) => {
-              // Handle "none" selection by clearing the visibility condition
-              if (value === "none") {
-                handleFormFieldChange("visibilityCondition", undefined);
-                return;
-              }
+      <FormField
+        control={form.control}
+        name="width"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Width</FormLabel>
+            <Select
+              value={field.value || ""}
+              onValueChange={(value) => {
+                field.onChange(value);
+                handleFormFieldChange("width", value);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select width" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Default</SelectItem>
+                <SelectItem value="full">Full width</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="small">Small</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormDescription className="text-xs">
+              Control the width of this element
+            </FormDescription>
+          </FormItem>
+        )}
+      />
 
-              const condition = selectedElement.visibilityCondition || {
-                field: "",
-                operator: "equals",
-                value: "",
-              };
-              const newCondition = { ...condition, field: value };
-              handleFormFieldChange("visibilityCondition", newCondition);
-            }}
+      <FormField
+        control={form.control}
+        name="visibility"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Visibility</FormLabel>
+            <Select
+              value={field.value || ""}
+              onValueChange={(value) => {
+                field.onChange(value);
+                handleFormFieldChange("visibility", value);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select visibility" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Always visible</SelectItem>
+                <SelectItem value="admin">Admin only</SelectItem>
+                <SelectItem value="dynamicCondition">
+                  Based on conditions
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <FormDescription className="text-xs">
+              Control when this element is visible
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+    </div>
+  );
+  
+  const renderDataMappingProperties = () => {
+    // Fetch data sources for dropdown options
+    const { data: dataSources = [] } = useQuery<DataSource[]>({
+      queryKey: ["/api/datasources"],
+      staleTime: 10 * 60 * 1000, // 10 minutes
+    });
+
+    // Get selected data source for field options
+    const selectedDataSourceId = selectedElement.dataSourceId || selectedElement.dataSource?.id || null;
+    const { data: selectedDataSource } = useQuery({
+      queryKey: ["/api/datasources", selectedDataSourceId],
+      enabled: !!selectedDataSourceId,
+      staleTime: 10 * 60 * 1000,
+    });
+
+    // Handle change of data source
+    const handleDataSourceChange = (value: string) => {
+      if (value === "none") {
+        // Clear the data source
+        handleNestedFieldChange("dataSource.id", null);
+        handleNestedFieldChange("dataSource.field", "");
+        handleElementPropertyChange("dataSourceId", null);
+        handleElementPropertyChange("displayField", "");
+        handleElementPropertyChange("valueField", "");
+        return;
+      }
+
+      // Set the data source ID and clear the field as it needs to be reselected
+      const sourceId = parseInt(value);
+      handleNestedFieldChange("dataSource.id", sourceId);
+      handleNestedFieldChange("dataSource.field", "");
+      
+      // Also set new style property
+      handleElementPropertyChange("dataSourceId", sourceId);
+    };
+    
+    // For elements that support options (dropdown, radio, checkbox)
+    const isOptionsElement = selectedElement.type === "dropdown" || 
+                             selectedElement.type === "radio" || 
+                             selectedElement.type === "checkbox";
+    
+    return (
+      <div className="space-y-4">
+        <div className="mb-6">
+          <div className="flex items-center space-x-2 mb-1">
+            <FormLabel>Data Source</FormLabel>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                    <HelpCircle className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>Connect this field to a data source to populate it with external data.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Select
+            value={
+              !localElement?.dataSource?.id || localElement.dataSource.id === 0
+                ? "none"
+                : localElement.dataSource.id.toString()
+            }
+            onValueChange={handleDataSourceChange}
           >
-            <SelectTrigger className="flex-grow">
-              <SelectValue placeholder="Select field" />
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a data source" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
-              <SelectItem value="department">Department</SelectItem>
-              <SelectItem value="position">Position</SelectItem>
-              {/* Dynamically show all form fields as potential conditions */}
-              {form
-                .getValues()
-                .elements?.filter((e: any) => e.id !== selectedElement.id)
-                .map((e: any) => (
-                  <SelectItem key={e.id} value={e.name || `field_${e.id}`}>
-                    {e.label || e.name || `Field ${e.id}`}
-                  </SelectItem>
-                ))}
+              {dataSources.map((source) => (
+                <SelectItem key={source.id} value={source.id.toString()}>
+                  <div className="flex items-center">
+                    <span>{source.name}</span>
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      {source.type}
+                    </Badge>
+                  </div>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-
-          <Select
-            value={selectedElement.visibilityCondition?.operator || "equals"}
-            onValueChange={(value) => {
-              const condition = selectedElement.visibilityCondition || {
-                field: "",
-                operator: "equals",
-                value: "",
-              };
-              const newCondition = { ...condition, operator: value };
-              handleFormFieldChange("visibilityCondition", newCondition);
-            }}
-            disabled={!selectedElement.visibilityCondition?.field}
-          >
-            <SelectTrigger className="w-24">
-              <SelectValue placeholder="Operator" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="equals">equals</SelectItem>
-              <SelectItem value="not_equals">not equals</SelectItem>
-              <SelectItem value="contains">contains</SelectItem>
-              <SelectItem value="starts_with">starts with</SelectItem>
-              <SelectItem value="ends_with">ends with</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Input
-            value={selectedElement.visibilityCondition?.value || ""}
-            placeholder="Value"
-            className="flex-grow"
-            disabled={!selectedElement.visibilityCondition?.field}
-            onChange={(e) => {
-              const condition = selectedElement.visibilityCondition || {
-                field: "",
-                operator: "equals",
-                value: "",
-              };
-              const newCondition = { ...condition, value: e.target.value };
-              handleFormFieldChange("visibilityCondition", newCondition);
-            }}
-          />
+          {dataSources.length === 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              No data sources available. Add data sources from the Data Sources page.
+            </p>
+          )}
         </div>
-        {selectedElement.visibilityCondition?.field && (
-          <Button
-            type="button"
-            variant="link"
-            className="text-primary text-sm px-0 py-1 mt-2"
-            onClick={() => {
-              handleFormFieldChange("visibilityCondition", undefined);
-            }}
-          >
-            <span>Clear condition</span>
-          </Button>
-        )}
-      </div>
-    </div>
-  );
 
-  const getElementIcon = (type: string) => {
-    switch (type) {
-      case "text":
-        return "📝";
-      case "number":
-        return "🔢";
-      case "date":
-        return "📅";
-      case "textarea":
-        return "📄";
-      case "dropdown":
-        return "🔽";
-      case "radio":
-        return "🔘";
-      case "checkbox":
-        return "☑️";
-      case "toggle":
-        return "🎚️";
-      case "section":
-        return "📦";
-      case "column":
-        return "📊";
-      case "divider":
-        return "➖";
-      case "button":
-        return "🔲";
-      default:
-        return "📁";
-    }
-  };
-
-  return (
-    <div className="h-full flex flex-col">
-      <div className="p-3 border-b border-gray-200 font-semibold flex justify-between items-center">
-        <span>Properties</span>
-      </div>
-
-      <div className="p-4 pb-0">
-        {/* Selected Element Info */}
-        {selectedElement && (
-          <div className="mb-4 pb-3 border-b border-gray-200">
-            <div className="flex items-center space-x-2">
-              <span className="text-primary">
-                {getElementIcon(selectedElement.type)}
-              </span>
-              <span className="font-medium capitalize">
-                {selectedElement.type} Field
-              </span>
+        {/* For dropdown, radio buttons, and checkboxes - options settings */}
+        {isOptionsElement && (
+          <div className="border-t pt-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">Options Source</h3>
+              <div className="flex items-center space-x-2">
+                <FormLabel className="text-xs">Source Type:</FormLabel>
+                <Select
+                  value={localElement?.optionsSourceType || "static"}
+                  onValueChange={(value) => {
+                    handleFormFieldChange("optionsSourceType", value);
+                    // Clear any existing options data when changing type
+                    if (value === "static") {
+                      handleFormFieldChange("dataSourceId", null);
+                      handleFormFieldChange("valueField", "");
+                      handleFormFieldChange("displayField", "");
+                    } else {
+                      // Default to empty array if switching to static
+                      if (!localElement?.options) {
+                        handleFormFieldChange("options", []);
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-28">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="static">Static</SelectItem>
+                    <SelectItem value="dataSource">Data Source</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            
+            {/* Static Options Editor */}
+            {(!localElement?.optionsSourceType || localElement.optionsSourceType === "static") && (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-sm font-medium">Static Options</h4>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const options = [...(localElement?.options || [])];
+                      options.push({ label: "New Option", value: `option${options.length + 1}` });
+                      handleFormFieldChange("options", options);
+                    }}
+                    className="h-8"
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Add Option
+                  </Button>
+                </div>
+                
+                {(!localElement?.options || localElement.options.length === 0) && (
+                  <div className="text-center py-4 border border-dashed rounded-md border-gray-300">
+                    <p className="text-sm text-muted-foreground">
+                      No options added yet. Click "Add Option" to create options.
+                    </p>
+                  </div>
+                )}
+                
+                {localElement?.options && localElement.options.length > 0 && (
+                  <div className="space-y-2">
+                    {localElement.options.map((option, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <Input
+                          value={option.label || ""}
+                          onChange={(e) => {
+                            const options = [...(localElement?.options || [])];
+                            options[index] = { ...options[index], label: e.target.value };
+                            handleFormFieldChange("options", options);
+                          }}
+                          placeholder="Label"
+                          className="flex-1"
+                        />
+                        <Input
+                          value={option.value || ""}
+                          onChange={(e) => {
+                            const options = [...(localElement?.options || [])];
+                            options[index] = { ...options[index], value: e.target.value };
+                            handleFormFieldChange("options", options);
+                          }}
+                          placeholder="Value"
+                          className="w-24"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => {
+                            const options = [...(localElement?.options || [])];
+                            options.splice(index, 1);
+                            handleFormFieldChange("options", options);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Data Source Options Configuration */}
+            {localElement?.optionsSourceType === "dataSource" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <FormLabel className="text-xs">Value Field</FormLabel>
+                    <Select
+                      value={localElement.valueField || ""}
+                      onValueChange={(value) => {
+                        handleFormFieldChange("valueField", value);
+                      }}
+                      disabled={!localElement?.dataSourceId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select field" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeSourceFields.map((field) => (
+                          <SelectItem key={field.name} value={field.name}>
+                            {field.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Field to use as the option value
+                    </p>
+                  </div>
+                  <div>
+                    <FormLabel className="text-xs">Display Field</FormLabel>
+                    <Select
+                      value={localElement.displayField || ""}
+                      onValueChange={(value) => {
+                        handleFormFieldChange("displayField", value);
+                      }}
+                      disabled={!localElement?.dataSourceId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select field" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeSourceFields.map((field) => (
+                          <SelectItem key={field.name} value={field.name}>
+                            {field.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Field to display to the user
+                    </p>
+                  </div>
+                </div>
+                
+                {activeSourceFields.length === 0 && localElement?.dataSourceId && (
+                  <div className="text-center py-4 border border-dashed rounded-md border-gray-300">
+                    <p className="text-sm text-muted-foreground">
+                      No fields available in the selected data source.
+                    </p>
+                  </div>
+                )}
+                
+                <FormField
+                  control={form.control}
+                  name="filterQuery"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Filter Query</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            handleFormFieldChange("filterQuery", e.target.value);
+                          }}
+                          placeholder="e.g. Country = 'USA'"
+                          className="font-mono text-sm"
+                          rows={2}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Optional filter to apply when loading options (SQL WHERE clause format)
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 mb-4">
+        {/* For regular form elements - show field mapping */}
+        {!isOptionsElement && localElement?.type !== "datatable" && localElement?.type !== "gallery" && (
+          <>
+            <div className="mb-6">
+              <div className="flex items-center space-x-2 mb-1">
+                <FormLabel>Map to Field</FormLabel>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Select a field from the data source to map to this form field. The data will be loaded when the form is viewed.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Select
+                value={localElement?.dataSource?.field || ""}
+                onValueChange={handleDataSourceFieldChange}
+                disabled={!localElement?.dataSource?.id}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a field" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {activeSourceFields.map((field) => (
+                    <SelectItem key={field.name} value={field.name}>
+                      <div className="flex items-center">
+                        <span>{field.name}</span>
+                        {field.type && (
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            {field.type}
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {activeSourceFields.length === 0 && localElement?.dataSource?.id && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  No fields available in the selected data source.
+                </p>
+              )}
+            </div>
+
+            <FormField
+              control={form.control}
+              name="defaultValue"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center space-x-2">
+                    <FormLabel>Default Value</FormLabel>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                            <HelpCircle className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>Default value to show when no data is available. This will be overridden by data source values when available.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="Default value (optional)"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleFormFieldChange("defaultValue", e.target.value);
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    This value will be used if no data is provided from the data source.
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+          </>
+        )}
+
+        {/* For data tables and galleries - show column configuration */}
+        {(localElement?.type === "datatable" || localElement?.type === "gallery") && localElement?.dataSource?.id && (
+          <div className="mt-6 space-y-6">
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-medium">Column Configuration</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addColumn}
+                  className="h-8"
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Add Column
+                </Button>
+              </div>
+
+              {(!localElement?.columns || localElement.columns.length === 0) && (
+                <div className="text-center py-4 border border-dashed rounded-md border-gray-300">
+                  <p className="text-sm text-muted-foreground">
+                    No columns configured yet. Add columns or connect to a data source.
+                  </p>
+                </div>
+              )}
+
+              {localElement?.columns && localElement.columns.length > 0 && (
+                <div>
+                  {localElement.columns.map((column: any, index: number) => (
+                    <div 
+                      key={index} 
+                      className="mb-4 p-3 border rounded-md bg-gray-50 relative group"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium">Column {index + 1}</h4>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => moveColumn(index, "up")}
+                            disabled={index === 0}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-4 w-4"
+                            >
+                              <path d="m18 15-6-6-6 6" />
+                            </svg>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => moveColumn(index, "down")}
+                            disabled={index === localElement.columns.length - 1}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-4 w-4"
+                            >
+                              <path d="m6 9 6 6 6-6" />
+                            </svg>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => removeColumn(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 mb-2">
+                        <div>
+                          <FormLabel className="text-xs">Field</FormLabel>
+                          <Select
+                            value={column.field || ""}
+                            onValueChange={(value) => updateColumn(index, "field", value)}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue placeholder="Select field" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {activeSourceFields.map((field) => (
+                                <SelectItem key={field.name} value={field.name}>
+                                  {field.name}
+                                </SelectItem>
+                              ))}
+                              {activeSourceFields.length === 0 && (
+                                <SelectItem value="" disabled>
+                                  No fields available
+                                </SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <FormLabel className="text-xs">Header Text</FormLabel>
+                          <Input
+                            value={column.header || ""}
+                            onChange={(e) => updateColumn(index, "header", e.target.value)}
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <FormLabel className="text-xs">Width (px)</FormLabel>
+                          <Input
+                            type="number"
+                            value={column.width || 120}
+                            onChange={(e) => updateColumn(index, "width", parseInt(e.target.value))}
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="flex flex-col justify-end">
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`visible-${index}`}
+                                checked={column.visible !== false}
+                                onCheckedChange={(checked) => updateColumn(index, "visible", !!checked)}
+                              />
+                              <label htmlFor={`visible-${index}`} className="text-xs cursor-pointer">
+                                Visible
+                              </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`sortable-${index}`}
+                                checked={column.sortable === true}
+                                onCheckedChange={(checked) => updateColumn(index, "sortable", !!checked)}
+                              />
+                              <label htmlFor={`sortable-${index}`} className="text-xs cursor-pointer">
+                                Sortable
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Table Settings */}
+              <div className="border-t pt-4 mt-6">
+                <h3 className="text-sm font-medium mb-3">Table Settings</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="pagination"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-2 border rounded-md">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              handleFormFieldChange("pagination", checked);
+                            }}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Enable Pagination</FormLabel>
+                          <FormDescription className="text-xs">
+                            Show data in pages
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="pageSize"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Page Size</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={100}
+                            {...field}
+                            value={field.value || 10}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 10;
+                              field.onChange(value);
+                              handleFormFieldChange("pageSize", value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Number of items per page
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="h-full flex flex-col border-l">
+      <div className="py-2 px-4 border-b flex items-center justify-between bg-muted/40">
+        <h2 className="text-sm font-medium">Properties: {selectedElement.type}</h2>
+      </div>
+
+      <div className="border-b">
+        <div className="flex">
           <button
             className={`px-3 py-2 text-sm font-medium ${
               activeTab === "basic"
@@ -1477,6 +1255,7 @@ export function PropertiesPanel({
           >
             Basic
           </button>
+
           <button
             className={`px-3 py-2 text-sm font-medium ${
               activeTab === "validation"
@@ -1487,6 +1266,7 @@ export function PropertiesPanel({
           >
             Validation
           </button>
+
           <button
             className={`px-3 py-2 text-sm font-medium ${
               activeTab === "data"
@@ -1497,6 +1277,7 @@ export function PropertiesPanel({
           >
             Data
           </button>
+
           {selectedElement.type === "button" && (
             <button
               className={`px-3 py-2 text-sm font-medium ${
