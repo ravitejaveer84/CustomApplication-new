@@ -193,6 +193,25 @@ export const ADVANCED_ELEMENTS = [
   }
 ];
 
+// Button specific constants
+export const BUTTON_TYPES = [
+  { value: "submit", label: "Submit Form" },
+  { value: "reset", label: "Reset Form" },
+  { value: "approve", label: "Approve Submission" },
+  { value: "reject", label: "Reject Submission" },
+  { value: "custom", label: "Custom Action" }
+];
+
+export const BUTTON_VARIANTS = [
+  { value: "default", label: "Default" },
+  { value: "primary", label: "Primary" },
+  { value: "secondary", label: "Secondary" },
+  { value: "outline", label: "Outline" },
+  { value: "destructive", label: "Destructive" },
+  { value: "ghost", label: "Ghost" },
+  { value: "link", label: "Link" }
+];
+
 // Sample default element configurations
 export function getDefaultElement(type: string): FormElement {
   const id = `field_${Date.now()}_${Math.floor(Math.random() * 1000)}`;

@@ -47,7 +47,8 @@ const formElementBase = z.object({
   id: z.string(),
   type: z.enum([
     "text", "number", "date", "textarea", "dropdown", 
-    "radio", "checkbox", "toggle", "section", "column", "divider"
+    "radio", "checkbox", "toggle", "section", "column", "divider",
+    "button" // Added button type
   ]),
   label: z.string(),
   name: z.string(),
@@ -74,6 +75,21 @@ const formElementBase = z.object({
     field: z.string(),
     operator: z.string(),
     value: z.string()
+  }).optional(),
+  // New properties for buttons
+  buttonType: z.enum(["submit", "reset", "approve", "reject", "custom"]).optional(),
+  buttonVariant: z.enum(["default", "primary", "secondary", "outline", "destructive", "ghost", "link"]).optional(),
+  buttonAction: z.object({
+    type: z.enum(["submit-form", "reset-form", "approve", "reject", "navigate", "custom-code"]).optional(),
+    confirmationMessage: z.string().optional(),
+    requireConfirmation: z.boolean().optional(),
+    requireReason: z.boolean().optional(),
+    navigateTo: z.string().optional(),
+    customCode: z.string().optional(),
+    notifyUsers: z.array(z.string()).optional(),
+    validationRules: z.string().optional(),
+    onSuccess: z.string().optional(),
+    onError: z.string().optional()
   }).optional(),
 });
 

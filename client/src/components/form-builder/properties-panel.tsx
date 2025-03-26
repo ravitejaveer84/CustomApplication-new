@@ -16,6 +16,7 @@ import { useForm } from "react-hook-form";
 import { Plus, RefreshCw, Code } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ActionEditor } from "./action-editor";
+import { ButtonPropertiesEditor } from "./button-properties-editor";
 
 interface PropertiesPanelProps {
   selectedElement: FormElement | null;
