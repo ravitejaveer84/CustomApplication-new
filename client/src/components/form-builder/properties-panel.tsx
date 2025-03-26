@@ -63,8 +63,13 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
     enabled: activeTab === "data"
   });
   
-  // Fetch data source fields if a data source is selected
+  // Find the selected data source directly from the dataSources array
   const dataSourceId = selectedElement?.dataSource?.id;
+  
+  // First find from the array of all data sources
+  const matchingDataSource = dataSources.find(ds => ds.id === dataSourceId);
+  
+  // Then fetch the specific one if we need more details
   const { 
     data: selectedDataSource, 
     isLoading: loadingDataSource,
@@ -73,7 +78,33 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
     queryKey: ["/api/datasources", dataSourceId],
     enabled: !!dataSourceId && dataSourceId !== "",
     refetchOnMount: true,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    // Always make sure the fields array is available
+    select: (data) => {
+      if (!data) return matchingDataSource || null;
+      
+      // Make sure fields is defined
+      const fieldsArray = data.fields || [];
+      
+      // Parse the config string if it's a string
+      if (data && typeof data.config === 'string' && data.config) {
+        try {
+          const parsedConfig = JSON.parse(data.config);
+          return {
+            ...data,
+            fields: fieldsArray,
+            parsedConfig
+          };
+        } catch (e) {
+          console.error("Error parsing config:", e);
+        }
+      }
+      
+      return {
+        ...data,
+        fields: fieldsArray
+      };
+    }
   });
   
   const handleFieldChange = useCallback((fieldName: string, value: any) => {
@@ -401,13 +432,23 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
   );
   
   const renderDataMappingProperties = () => {
+    // Get the current data source using either the loaded data or the matching one from the array
+    const activeDataSource = selectedDataSource || matchingDataSource;
+
     // Debug data source and fields
     console.log('Rendering data mapping properties:');
     console.log('Selected element dataSource:', selectedElement?.dataSource);
     console.log('Data sources:', dataSources);
-    console.log('Selected data source:', selectedDataSource);
-    console.log('Fields available:', selectedDataSource?.fields);
-  
+    console.log('Active data source:', activeDataSource);
+    console.log('Fields available:', activeDataSource?.fields);
+    
+    // Log the matching data source directly from array
+    console.log('Matching data source from array:', matchingDataSource);
+    
+    // Explicitly extract fields from active data source
+    const availableFields = activeDataSource?.fields || [];
+    console.log('Available fields:', availableFields);
+    
     return (
       <div className="space-y-4">
         {/* Data Source Field */}
@@ -498,26 +539,30 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
                     <SelectItem value="select-datasource-first" disabled>Select a data source first</SelectItem>
                   ) : loadingDataSource ? (
                     <SelectItem value="loading-fields" disabled>Loading fields...</SelectItem>
-                  ) : !selectedDataSource || !selectedDataSource.fields || selectedDataSource.fields.length === 0 ? (
-                    <SelectItem value="no-fields" disabled>No fields available</SelectItem>
+                  ) : !availableFields || availableFields.length === 0 ? (
+                    <SelectItem value="no-fields" disabled>No fields available in data source</SelectItem>
                   ) : (
-                    selectedDataSource.fields.map((field: { name: string; type: string; selected: boolean }) => (
-                      <SelectItem key={field.name} value={field.name}>
-                        <div className="flex items-center">
-                          <span>{field.name}</span>
-                          <span className="ml-2 text-xs text-muted-foreground">({field.type})</span>
-                          {field.selected && (
-                            <span className="ml-auto text-xs text-primary">✓ Selected</span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))
+                    // Add extra debugging to see exactly what fields we have
+                    <>
+                      {console.log("Rendering fields in dropdown:", availableFields)}
+                      {availableFields.map((field: { name: string; type: string; selected: boolean }) => (
+                        <SelectItem key={field.name} value={field.name}>
+                          <div className="flex items-center">
+                            <span>{field.name}</span>
+                            <span className="ml-2 text-xs text-muted-foreground">({field.type})</span>
+                            {field.selected && (
+                              <span className="ml-auto text-xs text-primary">✓ Selected</span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </>
                   )}
                 </SelectContent>
               </Select>
               <div className="mt-1 text-xs text-muted-foreground">
-                {selectedDataSource?.fields && selectedDataSource.fields.length > 0 && (
-                  <span>Available fields: {selectedDataSource.fields.length}</span>
+                {availableFields.length > 0 && (
+                  <span>Available fields: {availableFields.length}</span>
                 )}
               </div>
             </FormItem>
