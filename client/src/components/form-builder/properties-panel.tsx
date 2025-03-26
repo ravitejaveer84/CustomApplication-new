@@ -518,10 +518,25 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
     console.log('Active data source:', activeDataSource);
     console.log('Active source fields:', activeSourceFields);
     
-    // Direct field display for debugging
+    // Direct field display for debugging with improved error logging
     const handleDataSourceSelect = async (sourceId: string) => {
+      console.log("Data source selected - raw value:", sourceId);
+      
+      // Handle empty selection
+      if (!sourceId) {
+        setActiveDataSource(null);
+        setActiveSourceFields([]);
+        handleFieldChange("dataSource", null);
+        return;
+      }
+      
       const numericValue = parseInt(sourceId);
-      if (isNaN(numericValue)) return;
+      console.log("Parsed numeric value:", numericValue);
+      
+      if (isNaN(numericValue)) {
+        console.error("Invalid data source ID:", sourceId);
+        return;
+      }
       
       try {
         // Fetch the data source directly
@@ -529,7 +544,9 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
         const response = await fetch(`/api/datasources/${numericValue}`);
         
         if (!response.ok) {
-          throw new Error("Failed to fetch data source");
+          const errorText = await response.text();
+          console.error("Failed to fetch data source. Status:", response.status, "Response:", errorText);
+          throw new Error(`Failed to fetch data source. Status: ${response.status}`);
         }
         
         const data = await response.json();
@@ -538,6 +555,7 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
         // Update active data source and fields
         setActiveDataSource(data);
         const fields = Array.isArray(data.fields) ? data.fields : [];
+        console.log("Setting active source fields:", fields);
         setActiveSourceFields(fields);
         
         // Create proper structure for dataSource
@@ -549,22 +567,31 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
         // Update the form with the selected data source
         handleFieldChange("dataSource", dataSource);
         
-        // Reset the field mapping
-        handleFieldChange("dataSource.field", "");
-        
       } catch (error) {
         console.error("Error fetching data source:", error);
+        // Show error in UI
+        setActiveDataSource(null);
+        setActiveSourceFields([]);
       }
     };
     
     const handleFieldSelect = (fieldName: string) => {
       console.log("Selected field value:", fieldName);
       
+      if (!selectedElement.dataSource) {
+        console.error("Cannot select field without data source");
+        return;
+      }
+      
+      // Create a copy of the current data source settings
       const dataSource = {
         ...selectedElement.dataSource,
         field: fieldName
       };
       
+      console.log("Updating data source with field:", dataSource);
+      
+      // Update the form with the selected field
       handleFieldChange("dataSource", dataSource);
     };
     
@@ -575,16 +602,22 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
           <label className="text-sm font-medium">Data Source</label>
           <div className="mt-1">
             <select
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded bg-white"
               value={selectedElement?.dataSource?.id || ""}
               onChange={(e) => handleDataSourceSelect(e.target.value)}
             >
               <option value="">Select data source</option>
-              {dataSources && dataSources.map((source: DataSource) => (
-                <option key={source.id} value={source.id}>
-                  {source.name}
-                </option>
-              ))}
+              {loadingDataSources ? (
+                <option value="" disabled>Loading data sources...</option>
+              ) : !dataSources || dataSources.length === 0 ? (
+                <option value="" disabled>No data sources available</option>
+              ) : (
+                dataSources.map((source: DataSource) => (
+                  <option key={source.id} value={source.id}>
+                    {source.name} ({source.type})
+                  </option>
+                ))
+              )}
             </select>
           </div>
         </div>
@@ -613,16 +646,20 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
           {selectedElement?.dataSource?.id ? (
             <div className="mt-2">
               <select
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded bg-white"
                 value={selectedElement?.dataSource?.field || ""}
                 onChange={(e) => handleFieldSelect(e.target.value)}
               >
                 <option value="">Select field</option>
-                {activeSourceFields.map((field: { name: string; type: string }) => (
-                  <option key={field.name} value={field.name}>
-                    {field.name} ({field.type})
-                  </option>
-                ))}
+                {activeSourceFields.length === 0 ? (
+                  <option value="" disabled>Loading fields...</option>
+                ) : (
+                  activeSourceFields.map((field: { name: string; type: string }) => (
+                    <option key={field.name} value={field.name}>
+                      {field.name} ({field.type})
+                    </option>
+                  ))
+                )}
               </select>
             </div>
           ) : (
