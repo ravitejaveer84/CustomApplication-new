@@ -658,6 +658,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get actual data from a data source
+  app.get('/api/datasources/:id/data', async (req, res) => {
+    try {
+      const dataSourceId = parseInt(req.params.id);
+      if (isNaN(dataSourceId)) {
+        return res.status(400).json({ message: 'Invalid data source ID' });
+      }
+      
+      const dataSource = await storage.getDataSource(dataSourceId);
+      if (!dataSource) {
+        return res.status(404).json({ message: 'Data source not found' });
+      }
+      
+      // This will store the data we retrieve from the data source
+      let sourceData: any[] = [];
+      
+      // Handle different data source types
+      try {
+        // Parse the config to get necessary connection details
+        const config = typeof dataSource.config === 'string' ? 
+          JSON.parse(dataSource.config) : 
+          (dataSource.config as any || {});
+        
+        if (dataSource.type === 'excel') {
+          // For Excel files, fetch and parse the file
+          const { fileUrl } = config;
+          
+          if (fileUrl) {
+            // Fetch the Excel file
+            const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+            
+            // Parse the Excel file
+            const workbook = XLSX.read(response.data, { type: 'buffer' });
+            
+            // Get the first sheet or the specified sheet
+            const sheetName = config.sheetName || workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            
+            // Convert to JSON
+            sourceData = XLSX.utils.sheet_to_json(worksheet);
+          } else {
+            return res.status(400).json({ message: 'No file URL provided in Excel data source config' });
+          }
+        } else if (dataSource.type === 'database') {
+          // For database connections, query the database
+          const { server, port, database, username, password, schema, table, query } = config;
+          
+          // Use default database connection if configuration is missing
+          const pool = new pg.Pool({
+            host: server || process.env.PGHOST,
+            port: parseInt(port || process.env.PGPORT || '5432'),
+            database: database || process.env.PGDATABASE,
+            user: username || process.env.PGUSER,
+            password: password || process.env.PGPASSWORD,
+            connectionTimeoutMillis: 5000,
+          });
+          
+          try {
+            const client = await pool.connect();
+            
+            // Execute the configured query or a basic select
+            const sqlQuery = query || `SELECT * FROM ${schema || 'public'}.${table || 'users'} LIMIT 1000`;
+            
+            const result = await client.query(sqlQuery);
+            sourceData = result.rows;
+            
+            client.release();
+          } catch (dbError) {
+            console.error('Error querying database:', dbError);
+            return res.status(500).json({ message: 'Error querying database data source' });
+          } finally {
+            await pool.end();
+          }
+        } else if (dataSource.type === 'sharepoint') {
+          // For SharePoint lists, this would need actual SharePoint API integration
+          return res.status(501).json({ message: 'SharePoint data source not yet implemented' });
+        } else {
+          return res.status(400).json({ message: 'Unsupported data source type' });
+        }
+      } catch (error) {
+        console.error('Error processing data source:', error);
+        return res.status(500).json({ message: 'Error processing data source configuration' });
+      }
+      
+      // Filter data to only include selected fields if needed
+      if (dataSource.selectedFields && Array.isArray(dataSource.selectedFields) && dataSource.selectedFields.length > 0) {
+        sourceData = sourceData.map(item => {
+          const filteredItem: Record<string, any> = {};
+          for (const field of dataSource.selectedFields) {
+            if (item[field] !== undefined) {
+              filteredItem[field] = item[field];
+            }
+          }
+          return filteredItem;
+        });
+      }
+      
+      res.json(sourceData);
+    } catch (error) {
+      console.error('Error fetching data from data source:', error);
+      res.status(500).json({ message: 'Error fetching data from data source' });
+    }
+  });
+  
   // Update selected fields for a data source
   app.patch('/api/datasources/:id/fields', async (req, res) => {
     try {
