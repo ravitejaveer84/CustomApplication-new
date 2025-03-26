@@ -681,7 +681,13 @@ export function PropertiesPanel({ selectedElement, onElementUpdate }: Properties
       <div className="p-4 overflow-y-auto flex-1">
         <Form {...form}>
           <form>
-            {activeTab === "basic" && renderBasicProperties()}
+            {activeTab === "basic" && selectedElement.type !== "button" && renderBasicProperties()}
+            {activeTab === "basic" && selectedElement.type === "button" && (
+              <ButtonPropertiesEditor 
+                element={selectedElement}
+                onUpdate={onElementUpdate}
+              />
+            )}
             {activeTab === "validation" && renderValidationProperties()}
             {activeTab === "data" && renderDataMappingProperties()}
             {activeTab === "actions" && selectedElement.type === "button" && (
