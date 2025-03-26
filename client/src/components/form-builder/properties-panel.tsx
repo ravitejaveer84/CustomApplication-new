@@ -581,17 +581,30 @@ export function PropertiesPanel({
   const renderDataMappingProperties = () => {
     // Handle data source selection using shadcn Select component
     const handleDataSourceChange = async (sourceIdStr: string) => {
-      const sourceId = parseInt(sourceIdStr);
-      
-      if (isNaN(sourceId) || sourceId === 0) {
-        // If no source is selected, clear the fields
+      // If "none" is selected, clear the fields
+      if (sourceIdStr === "none") {
         setActiveDataSource(null);
         setActiveSourceFields([]);
         
         // Update the element to clear the data source
         onElementUpdate({
           ...selectedElement,
-          dataSource: { id: 0, field: "" },
+          dataSource: { id: 0, field: "none" },
+        });
+        return;
+      }
+      
+      const sourceId = parseInt(sourceIdStr);
+      
+      if (isNaN(sourceId) || sourceId === 0) {
+        // If invalid source ID, clear the fields
+        setActiveDataSource(null);
+        setActiveSourceFields([]);
+        
+        // Update the element to clear the data source
+        onElementUpdate({
+          ...selectedElement,
+          dataSource: { id: 0, field: "none" },
         });
         return;
       }
@@ -620,13 +633,16 @@ export function PropertiesPanel({
     // Handle field selection using shadcn Select component
     const handleFieldChange = (fieldName: string) => {
       console.log("Field selected:", fieldName);
+      
+      // If "none" is selected, clear the field selection but keep the data source
+      const fieldValue = fieldName === "none" ? "" : fieldName;
 
       // Update the element directly with the selected field
       onElementUpdate({
         ...selectedElement,
         dataSource: {
           id: selectedElement.dataSource?.id || 0,
-          field: fieldName,
+          field: fieldValue,
         },
       });
     };
@@ -651,7 +667,7 @@ export function PropertiesPanel({
               <SelectValue placeholder="Select a data source" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="none">None</SelectItem>
               {dataSources.map((source) => (
                 <SelectItem key={source.id} value={source.id.toString()}>
                   {source.name} ({source.type})
@@ -672,7 +688,7 @@ export function PropertiesPanel({
               <SelectValue placeholder="Select a field" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="none">None</SelectItem>
               {activeSourceFields.map((field) => (
                 <SelectItem key={field.name} value={field.name}>
                   {field.name}
@@ -736,6 +752,12 @@ export function PropertiesPanel({
           <Select
             value={selectedElement.visibilityCondition?.field || ""}
             onValueChange={(value) => {
+              // Handle "none" selection by clearing the visibility condition
+              if (value === "none") {
+                handleFormFieldChange("visibilityCondition", undefined);
+                return;
+              }
+                
               const condition = selectedElement.visibilityCondition || {
                 field: "",
                 operator: "equals",
@@ -749,13 +771,13 @@ export function PropertiesPanel({
               <SelectValue placeholder="Select field" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="none">None</SelectItem>
               <SelectItem value="department">Department</SelectItem>
               <SelectItem value="position">Position</SelectItem>
               {/* Dynamically show all form fields as potential conditions */}
-              {form.getValues().elements?.filter(e => e.id !== selectedElement.id).map(e => (
-                <SelectItem key={e.id} value={e.name}>
-                  {e.label || e.name}
+              {form.getValues().elements?.filter((e: any) => e.id !== selectedElement.id).map((e: any) => (
+                <SelectItem key={e.id} value={e.name || `field_${e.id}`}>
+                  {e.label || e.name || `Field ${e.id}`}
                 </SelectItem>
               ))}
             </SelectContent>
