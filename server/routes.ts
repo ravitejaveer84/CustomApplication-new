@@ -843,6 +843,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Approval Request API endpoints
+  app.get('/api/approval-requests', isAuthenticated, async (req, res) => {
+    try {
+      const requests = await storage.getApprovalRequests();
+      res.json(requests);
+    } catch (error) {
+      console.error('Error fetching approval requests:', error);
+      res.status(500).json({ message: 'Error retrieving approval requests' });
+    }
+  });
+
+  app.get('/api/approval-requests/pending', isAuthenticated, async (req, res) => {
+    try {
+      const requests = await storage.getPendingApprovalRequests();
+      res.json(requests);
+    } catch (error) {
+      console.error('Error fetching pending approval requests:', error);
+      res.status(500).json({ message: 'Error retrieving pending approval requests' });
+    }
+  });
+
+  app.get('/api/approval-requests/user', isAuthenticated, async (req, res) => {
+    const userId = req.session.user!.id;
+    try {
+      const requests = await storage.getApprovalRequestsByUser(userId);
+      res.json(requests);
+    } catch (error) {
+      console.error('Error fetching user approval requests:', error);
+      res.status(500).json({ message: 'Error retrieving user approval requests' });
+    }
+  });
+
+  app.post('/api/approval-requests', isAuthenticated, async (req, res) => {
+    const userId = req.session.user!.id;
+    try {
+      const { formSubmissionId, reason } = req.body;
+      const request = await storage.createApprovalRequest({
+        formSubmissionId,
+        requesterId: userId,
+        reason
+      });
+      res.status(201).json(request);
+    } catch (error) {
+      console.error('Error creating approval request:', error);
+      res.status(500).json({ message: 'Error creating approval request' });
+    }
+  });
+
+  app.patch('/api/approval-requests/:id', isAuthenticated, async (req, res) => {
+    const userId = req.session.user!.id;
+    const requestId = parseInt(req.params.id);
+    try {
+      // Get the original request to check requester
+      const requests = await storage.getApprovalRequests();
+      const originalRequest = requests.find(r => r.id === requestId);
+      
+      if (!originalRequest) {
+        return res.status(404).json({ message: 'Approval request not found' });
+      }
+      
+      // Check that the current user is not the one who created the request
+      if (originalRequest.requesterId === userId) {
+        return res.status(403).json({ 
+          message: 'You cannot approve/reject your own request' 
+        });
+      }
+      
+      const { status, reason } = req.body;
+      const updatedRequest = await storage.updateApprovalRequest(
+        requestId,
+        status,
+        userId,
+        reason
+      );
+      
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error('Error updating approval request:', error);
+      res.status(500).json({ message: 'Error updating approval request' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

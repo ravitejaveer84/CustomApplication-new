@@ -325,7 +325,7 @@ export class MemStorage implements IStorage {
       formSubmissionId: insertRequest.formSubmissionId,
       requesterId: insertRequest.requesterId,
       status: "pending",
-      reason: insertRequest.reason || null,
+      reason: insertRequest.reason ?? null,
       approvedById: null,
       createdAt: now,
       updatedAt: now
@@ -342,7 +342,7 @@ export class MemStorage implements IStorage {
       ...request,
       status,
       approvedById,
-      reason: reason || request.reason,
+      reason: reason ?? request.reason,
       updatedAt: new Date()
     };
     
@@ -553,7 +553,7 @@ export class DatabaseStorage implements IStorage {
       .set({ 
         status, 
         approvedById,
-        reason: reason || undefined,
+        reason: reason ?? null,
         updatedAt: new Date()
       })
       .where(eq(approvalRequests.id, id))
