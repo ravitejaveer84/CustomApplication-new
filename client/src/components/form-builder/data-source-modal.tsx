@@ -417,7 +417,7 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
         body: JSON.stringify({
           name: data.name,
           type: data.type,
-          config: JSON.stringify(config), // Convert config to string for storage
+          config: config, // Send config as plain object, server will stringify if needed
           fields: fields,                 // Store all fields
           selectedFields: selectedFieldNames // Store just the names of selected fields
         })

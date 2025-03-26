@@ -553,7 +553,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/datasources', async (req, res) => {
     try {
-      const dataSourceData = insertDataSourceSchema.parse(req.body);
+      // Process the request body to properly format config as a string
+      const requestData = { ...req.body };
+      
+      // If config is an object, stringify it before validation
+      if (requestData.config && typeof requestData.config === 'object') {
+        requestData.config = JSON.stringify(requestData.config);
+      }
+      
+      const dataSourceData = insertDataSourceSchema.parse(requestData);
       const dataSource = await storage.createDataSource(dataSourceData);
       res.status(201).json(dataSource);
     } catch (error) {
@@ -578,7 +586,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Data source not found' });
       }
       
-      const dataSourceData = insertDataSourceSchema.partial().parse(req.body);
+      // Process the request body to properly format config as a string
+      const requestData = { ...req.body };
+      
+      // If config is an object, stringify it before validation
+      if (requestData.config && typeof requestData.config === 'object') {
+        requestData.config = JSON.stringify(requestData.config);
+      }
+      
+      const dataSourceData = insertDataSourceSchema.partial().parse(requestData);
       const updatedDataSource = await storage.updateDataSource(dataSourceId, dataSourceData);
       res.json(updatedDataSource);
     } catch (error) {
