@@ -15,14 +15,17 @@ export function Gallery({ element, formId, formData }: GalleryProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (element.dataSourceId) {
+    // Get data source ID from either format (direct or nested)
+    const dataSourceId = element.dataSourceId || element.dataSource?.id;
+    
+    if (dataSourceId) {
       setLoading(true);
       setError(null);
 
       const fetchData = async () => {
         try {
           const response = await apiRequest<any[]>(
-            `/api/datasources/${element.dataSourceId}/data`
+            `/api/datasources/${dataSourceId}/data`
           );
 
           if (response && Array.isArray(response)) {
@@ -40,7 +43,7 @@ export function Gallery({ element, formId, formData }: GalleryProps) {
 
       fetchData();
     }
-  }, [element.dataSourceId]);
+  }, [element.dataSourceId, element.dataSource?.id]);
 
   if (loading) {
     return (
