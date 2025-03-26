@@ -568,7 +568,21 @@ export function PropertiesPanel({
           name="validation.minLength"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Min Length</FormLabel>
+              <div className="flex items-center space-x-2">
+                <FormLabel>Min Length</FormLabel>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Set the minimum number of characters required for this field.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <FormControl>
                 <Input
                   type="number"
@@ -595,7 +609,21 @@ export function PropertiesPanel({
           name="validation.maxLength"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Max Length</FormLabel>
+              <div className="flex items-center space-x-2">
+                <FormLabel>Max Length</FormLabel>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Set the maximum number of characters allowed for this field.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <FormControl>
                 <Input
                   type="number"
@@ -621,7 +649,21 @@ export function PropertiesPanel({
           name="validation.pattern"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Pattern</FormLabel>
+              <div className="flex items-center space-x-2">
+                <FormLabel>Pattern</FormLabel>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Define a regular expression pattern that the input must match (e.g., email format validation).</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <FormControl>
                 <Input
                   {...field}
@@ -643,7 +685,21 @@ export function PropertiesPanel({
         name="validation.errorMessage"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Error Message</FormLabel>
+            <div className="flex items-center space-x-2">
+              <FormLabel>Error Message</FormLabel>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                      <HelpCircle className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>Custom message to display when validation fails. If left empty, a default message will be used.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <FormControl>
               <Input
                 {...field}
