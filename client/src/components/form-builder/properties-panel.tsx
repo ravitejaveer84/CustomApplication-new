@@ -49,6 +49,14 @@ export function PropertiesPanel({
   // State for holding selected data source details with fields
   const [activeDataSource, setActiveDataSource] = useState<any>(null);
   const [activeSourceFields, setActiveSourceFields] = useState<any[]>([]);
+  
+  // This is used for general field changes (not data source mappings)
+  const handleFormFieldChange = (fieldName: string, value: any) => {
+    onElementUpdate({
+      ...selectedElement,
+      [fieldName]: value,
+    });
+  };
 
   const form = useForm<FormElement>({
     defaultValues: selectedElement || {
@@ -680,7 +688,7 @@ export function PropertiesPanel({
                   placeholder="Default value (optional)"
                   onChange={(e) => {
                     field.onChange(e);
-                    handleFieldChange("defaultValue", e.target.value);
+                    handleFormFieldChange("defaultValue", e.target.value);
                   }}
                 />
               </FormControl>
@@ -706,7 +714,7 @@ export function PropertiesPanel({
                 placeholder="Additional CSS classes"
                 onChange={(e) => {
                   field.onChange(e);
-                  handleFieldChange("cssClass", e.target.value);
+                  handleFormFieldChange("cssClass", e.target.value);
                 }}
               />
             </FormControl>
@@ -727,7 +735,7 @@ export function PropertiesPanel({
                 value: "",
               };
               const newCondition = { ...condition, field: value };
-              handleFieldChange("visibilityCondition", newCondition);
+              handleFormFieldChange("visibilityCondition", newCondition);
             }}
           >
             <SelectTrigger className="flex-grow">
