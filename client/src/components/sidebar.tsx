@@ -62,14 +62,14 @@ export function Sidebar({ isOpen }: SidebarProps) {
       isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
     )}>
       <nav className="p-2 space-y-1">
-        {/* Core Navigation Items */}
-        {NAVIGATION_ITEMS.map((category, index) => (
+        {/* Core Navigation Items - Only show for admin users */}
+        {isAdmin && NAVIGATION_ITEMS.map((category, index) => (
           <div key={index} className="mb-4">
             <div className="p-2 text-sm font-semibold text-gray-500">
               {category.category}
             </div>
             
-            {category.items.map((item, itemIndex) => (
+            {category.items.filter(item => !item.adminOnly || isAdmin).map((item, itemIndex) => (
               <Link 
                 key={itemIndex} 
                 href={item.path}

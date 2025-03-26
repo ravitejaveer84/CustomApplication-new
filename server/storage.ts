@@ -70,9 +70,8 @@ export class MemStorage implements IStorage {
     this.dataSourceCurrentId = 1;
     this.formSubmissionCurrentId = 1;
     
-    // Initialize with default users and applications
+    // Only initialize default admin user, no default applications
     this.initializeDefaultUsers();
-    this.initializeDefaultApplications();
   }
   
   private async initializeDefaultUsers() {

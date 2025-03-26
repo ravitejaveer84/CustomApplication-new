@@ -178,23 +178,14 @@ function getDefaultLabel(type: string): string {
   }
 }
 
-// Navigation items
+// Navigation items - these will be filtered in sidebar based on role
 export const NAVIGATION_ITEMS = [
-  {
-    category: "WORKSPACES",
-    items: [
-      { icon: "home", label: "Home", path: "/" },
-      { icon: "list", label: "Form Builder", path: "/form-builder" },
-      { icon: "database", label: "Data Sources", path: "/data-sources" },
-      { icon: "file", label: "Published Forms", path: "/published-forms" }
-    ]
-  },
   {
     category: "ADMINISTRATION",
     items: [
-      { icon: "users", label: "Users", path: "/users" },
-      { icon: "shield", label: "Permissions", path: "/permissions" },
-      { icon: "settings", label: "Settings", path: "/settings" }
+      { icon: "users", label: "Users", path: "/users", adminOnly: true },
+      { icon: "shield", label: "Permissions", path: "/permissions", adminOnly: true },
+      { icon: "settings", label: "Settings", path: "/settings", adminOnly: true }
     ]
   }
 ];
