@@ -579,13 +579,11 @@ export function PropertiesPanel({
   );
 
   const renderDataMappingProperties = () => {
-    // Super simple approach focusing on just the essential functionality
-    const handleDataSourceChange = async (
-      event: React.ChangeEvent<HTMLSelectElement>,
-    ) => {
-      const sourceId = parseInt(event.target.value);
+    // Handle data source selection using shadcn Select component
+    const handleDataSourceChange = async (sourceIdStr: string) => {
+      const sourceId = parseInt(sourceIdStr);
       
-      if (isNaN(sourceId)) {
+      if (isNaN(sourceId) || sourceId === 0) {
         // If no source is selected, clear the fields
         setActiveDataSource(null);
         setActiveSourceFields([]);
@@ -619,8 +617,8 @@ export function PropertiesPanel({
       }
     };
 
-    const handleFieldChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const fieldName = event.target.value;
+    // Handle field selection using shadcn Select component
+    const handleFieldChange = (fieldName: string) => {
       console.log("Field selected:", fieldName);
 
       // Update the element directly with the selected field
@@ -643,36 +641,45 @@ export function PropertiesPanel({
 
     return (
       <div className="space-y-4">
-        <div>
-          <label className="block mb-2 text-sm font-medium">Data Source</label>
-          <select
-            className="w-full p-2 border rounded bg-white"
+        <div className="mb-6">
+          <FormLabel>Data Source</FormLabel>
+          <Select
             value={selectedElement.dataSource?.id?.toString() || ""}
-            onChange={handleDataSourceChange}
+            onValueChange={handleDataSourceChange}
           >
-            <option value="">Select a data source</option>
-            {dataSources.map((source) => (
-              <option key={source.id} value={source.id.toString()}>
-                {source.name} ({source.type})
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a data source" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">None</SelectItem>
+              {dataSources.map((source) => (
+                <SelectItem key={source.id} value={source.id.toString()}>
+                  {source.name} ({source.type})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <div>
-          <label className="block mb-2 text-sm font-medium">Map to Field</label>
-          <select
-            className="w-full p-2 border rounded bg-white"
+        <div className="mb-6">
+          <FormLabel>Map to Field</FormLabel>
+          <Select
             value={selectedElement.dataSource?.field || ""}
-            onChange={handleFieldChange}
+            onValueChange={handleFieldChange}
+            disabled={!selectedElement.dataSource?.id}
           >
-            <option value="">Select a field</option>
-            {activeSourceFields.map((field) => (
-              <option key={field.name} value={field.name}>
-                {field.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a field" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">None</SelectItem>
+              {activeSourceFields.map((field) => (
+                <SelectItem key={field.name} value={field.name}>
+                  {field.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Default Value Field */}
@@ -727,7 +734,7 @@ export function PropertiesPanel({
         <FormLabel>Visibility Condition</FormLabel>
         <div className="flex items-center space-x-2 mt-1">
           <Select
-            value={selectedElement.visibilityCondition?.field || "none"}
+            value={selectedElement.visibilityCondition?.field || ""}
             onValueChange={(value) => {
               const condition = selectedElement.visibilityCondition || {
                 field: "",
@@ -742,8 +749,15 @@ export function PropertiesPanel({
               <SelectValue placeholder="Select field" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="">None</SelectItem>
               <SelectItem value="department">Department</SelectItem>
               <SelectItem value="position">Position</SelectItem>
+              {/* Dynamically show all form fields as potential conditions */}
+              {form.getValues().elements?.filter(e => e.id !== selectedElement.id).map(e => (
+                <SelectItem key={e.id} value={e.name}>
+                  {e.label || e.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -756,8 +770,9 @@ export function PropertiesPanel({
                 value: "",
               };
               const newCondition = { ...condition, operator: value };
-              handleFieldChange("visibilityCondition", newCondition);
+              handleFormFieldChange("visibilityCondition", newCondition);
             }}
+            disabled={!selectedElement.visibilityCondition?.field}
           >
             <SelectTrigger className="w-24">
               <SelectValue placeholder="Operator" />
@@ -765,6 +780,9 @@ export function PropertiesPanel({
             <SelectContent>
               <SelectItem value="equals">equals</SelectItem>
               <SelectItem value="not_equals">not equals</SelectItem>
+              <SelectItem value="contains">contains</SelectItem>
+              <SelectItem value="starts_with">starts with</SelectItem>
+              <SelectItem value="ends_with">ends with</SelectItem>
             </SelectContent>
           </Select>
 
@@ -772,6 +790,7 @@ export function PropertiesPanel({
             value={selectedElement.visibilityCondition?.value || ""}
             placeholder="Value"
             className="flex-grow"
+            disabled={!selectedElement.visibilityCondition?.field}
             onChange={(e) => {
               const condition = selectedElement.visibilityCondition || {
                 field: "",
@@ -779,22 +798,22 @@ export function PropertiesPanel({
                 value: "",
               };
               const newCondition = { ...condition, value: e.target.value };
-              handleFieldChange("visibilityCondition", newCondition);
+              handleFormFieldChange("visibilityCondition", newCondition);
             }}
           />
         </div>
-        <Button
-          type="button"
-          variant="link"
-          className="text-primary text-sm px-0 py-1 mt-2"
-          onClick={() => {
-            const newCondition = { field: "", operator: "equals", value: "" };
-            handleFieldChange("visibilityCondition", newCondition);
-          }}
-        >
-          <Plus className="h-3 w-3 mr-1" />
-          <span>Add condition</span>
-        </Button>
+        {selectedElement.visibilityCondition?.field && (
+          <Button
+            type="button"
+            variant="link"
+            className="text-primary text-sm px-0 py-1 mt-2"
+            onClick={() => {
+              handleFormFieldChange("visibilityCondition", undefined);
+            }}
+          >
+            <span>Clear condition</span>
+          </Button>
+        )}
       </div>
     </div>
   );
