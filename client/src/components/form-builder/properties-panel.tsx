@@ -855,29 +855,37 @@ export function PropertiesPanel({
             <Select
               value={selectedElement.optionsSource || "static"}
               onValueChange={(value) => {
+                // Start with a fresh update
+                const updates: Record<string, any> = {
+                  optionsSource: value
+                };
+                
                 if (value === "dataSource") {
                   // When switching to data source mode:
-                  // 1. Clear any existing static options to avoid confusion
-                  handleElementPropertyChange("options", []);
+                  // Clear static options completely and force empty array
+                  updates.options = [];
+                  // Don't reset dataSourceId if already present
                 } else if (value === "static") {
                   // When switching to static mode:
-                  // 1. Clear any data source references
-                  handleElementPropertyChange("dataSourceId", null);
-                  handleElementPropertyChange("displayField", "");
-                  handleElementPropertyChange("valueField", "");
+                  // Reset data source related fields
+                  updates.dataSourceId = null;
+                  updates.displayField = "";
+                  updates.valueField = "";
                   
-                  // 2. Set default options if none exist
+                  // Start with empty or default options
                   if (!selectedElement.options?.length) {
-                    handleElementPropertyChange("options", [
-                      { label: "Option 1", value: "option1" },
-                      { label: "Option 2", value: "option2" },
-                      { label: "Option 3", value: "option3" }
-                    ]);
+                    updates.options = [
+                      { label: "Option 1", value: "option1" }
+                    ];
                   }
                 }
                 
-                // Finally set the options source
-                handleElementPropertyChange("optionsSource", value);
+                // Apply all updates at once to avoid race conditions
+                Object.entries(updates).forEach(([key, value]) => {
+                  handleElementPropertyChange(key, value);
+                });
+                
+                console.log("Setting dropdown to: ", value, updates);
               }}
             >
               <SelectTrigger>
@@ -909,59 +917,71 @@ export function PropertiesPanel({
                 </TooltipProvider>
               </div>
               <div className="space-y-2 mt-2">
-                {selectedElement.options?.map(
-                  (option: { label: string; value: string }, index: number) => (
-                    <div key={index} className="flex gap-2">
-                      <Input
-                        value={option.label}
-                        onChange={(e) => {
-                          const newOptions = [...(selectedElement.options || [])];
-                          newOptions[index] = {
-                            ...newOptions[index],
-                            label: e.target.value,
-                          };
-                          handleElementPropertyChange("options", newOptions);
-                        }}
-                        placeholder="Option label"
-                        className="flex-1"
-                      />
-                      <Input
-                        value={option.value}
-                        onChange={(e) => {
-                          const newOptions = [...(selectedElement.options || [])];
-                          newOptions[index] = {
-                            ...newOptions[index],
-                            value: e.target.value,
-                          };
-                          handleElementPropertyChange("options", newOptions);
-                        }}
-                        placeholder="Value"
-                        className="flex-1"
-                      />
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => {
-                          const newOptions = [...(selectedElement.options || [])];
-                          newOptions.splice(index, 1);
-                          handleElementPropertyChange("options", newOptions);
-                        }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                      </Button>
-                    </div>
-                  ),
+                {/* Handle case where options is undefined or empty */}
+                {(selectedElement.options && selectedElement.options.length > 0) ? (
+                  // Show options if they exist
+                  selectedElement.options.map(
+                    (option: { label: string; value: string }, index: number) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={option.label}
+                          onChange={(e) => {
+                            const newOptions = [...(selectedElement.options || [])];
+                            newOptions[index] = {
+                              ...newOptions[index],
+                              label: e.target.value,
+                            };
+                            handleElementPropertyChange("options", newOptions);
+                          }}
+                          placeholder="Option label"
+                          className="flex-1"
+                        />
+                        <Input
+                          value={option.value}
+                          onChange={(e) => {
+                            const newOptions = [...(selectedElement.options || [])];
+                            newOptions[index] = {
+                              ...newOptions[index],
+                              value: e.target.value,
+                            };
+                            handleElementPropertyChange("options", newOptions);
+                          }}
+                          placeholder="Value"
+                          className="flex-1"
+                        />
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => {
+                            const newOptions = [...(selectedElement.options || [])];
+                            newOptions.splice(index, 1);
+                            handleElementPropertyChange("options", newOptions);
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                        </Button>
+                      </div>
+                    )
+                  )
+                ) : (
+                  // Show message if no options exist
+                  <div className="text-center text-muted-foreground py-2">
+                    No options added yet. Click below to add options.
+                  </div>
                 )}
+                
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full mt-2"
                   onClick={() => {
+                    // Create first option or add to existing options
+                    const currentOptions = selectedElement.options || [];
                     const newOptions = [
-                      ...(selectedElement.options || []),
+                      ...currentOptions,
                       {
                         label: "New Option",
-                        value: `option${(selectedElement.options?.length || 0) + 1}`,
+                        value: `option${currentOptions.length + 1}`,
                       },
                     ];
                     handleElementPropertyChange("options", newOptions);

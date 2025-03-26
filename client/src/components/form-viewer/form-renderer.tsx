@@ -234,8 +234,7 @@ export function FormRenderer({
             dataSourceId,
             displayField,
             valueField,
-            optionsSource: element.optionsSource,
-            options: element.options || []
+            optionsSource: element.optionsSource
           });
           
           if (dataSourceId && (displayField || valueField)) {
