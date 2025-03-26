@@ -207,37 +207,19 @@ export function FormRenderer({
         
         // Fetch dropdown options from data source if configured
         useEffect(() => {
-          // Get data source ID from the appropriate property based on optionsSource
-          let dataSourceId = null;
-          let displayField = null;
-          let valueField = null;
+          // Simplified approach - just use the dataSourceId property directly
+          let dataSourceId = element.dataSourceId;
+          let displayField = element.displayField || element.dataSource?.field;
+          let valueField = element.valueField || displayField;
           
-          // Clear dropdownOptions if we're changing back to static
+          // Clear dropdownOptions if we're changing to static mode
           if (element.optionsSource !== "dataSource" && dropdownOptions.length > 0) {
             setDropdownOptions([]);
           }
+                    
+          console.log("Fetching dropdown data from source ID:", dataSourceId);
           
-          // If element uses new format with optionsSource
-          if (element.optionsSource === "dataSource") {
-            dataSourceId = element.dataSourceId;
-            displayField = element.displayField;
-            valueField = element.valueField || element.displayField; // If valueField not set, use displayField
-          } else {
-            // Using old format
-            dataSourceId = element.dataSource?.id;
-            displayField = element.dataSource?.field;
-            valueField = element.dataSource?.field; // Use same field as value field for backwards compatibility
-          }
-          
-          console.log("Dropdown config:", {
-            element: element.name,
-            dataSourceId,
-            displayField,
-            valueField,
-            optionsSource: element.optionsSource
-          });
-          
-          if (dataSourceId && (displayField || valueField)) {
+          if (dataSourceId && element.optionsSource === "dataSource") {
             setIsLoadingOptions(true);
             
             const fetchDropdownData = async () => {
@@ -313,17 +295,7 @@ export function FormRenderer({
             
             fetchDropdownData();
           }
-        }, [element.dataSourceId, element.dataSource?.id, element.displayField, element.dataSource?.field, element.valueField, element.optionsSource]);
-        
-        // Determine which options to display based on the configuration approach
-        let dataSourceId = null;
-        
-        // Check which approach is being used
-        if (element.optionsSource === "dataSource") {
-          dataSourceId = element.dataSourceId;
-        } else {
-          dataSourceId = element.dataSource?.id;
-        }
+        }, [element.dataSourceId, element.displayField, element.valueField, element.optionsSource]);
         
         // Logic for determining options to display:
         // 1. If in data source mode with options loaded, use data source options

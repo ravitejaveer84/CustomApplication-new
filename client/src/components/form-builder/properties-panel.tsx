@@ -860,8 +860,16 @@ export function PropertiesPanel({
                 
                 // When switching to data source mode, ensure we have reasonable defaults
                 if (value === "dataSource") {
-                  // Keep any existing options for when we switch back
-                  // We don't need to do anything special here
+                  // If there's no dataSourceId set, try to get it from the dataSource.id field for compatibility
+                  if (!selectedElement.dataSourceId && selectedElement.dataSource?.id) {
+                    handleElementPropertyChange("dataSourceId", selectedElement.dataSource.id);
+                  }
+                  
+                  // If there's no displayField set, try to get it from the dataSource.field for compatibility
+                  if (!selectedElement.displayField && selectedElement.dataSource?.field) {
+                    handleElementPropertyChange("displayField", selectedElement.dataSource.field);
+                  }
+                  
                   console.log("Switched to data source mode");
                 } 
                 else if (value === "static") {
@@ -1009,7 +1017,14 @@ export function PropertiesPanel({
               <Select
                 value={selectedElement.dataSourceId?.toString() || ""}
                 onValueChange={(value) => {
-                  handleElementPropertyChange("dataSourceId", parseInt(value));
+                  // Store the numeric dataSourceId
+                  const sourceId = parseInt(value);
+                  handleElementPropertyChange("dataSourceId", sourceId);
+                  // Also set dataSource.id for compatibility
+                  handleElementPropertyChange("dataSource", { 
+                    ...(selectedElement.dataSource || {}), 
+                    id: sourceId 
+                  });
                   // Reset field selections when data source changes
                   handleElementPropertyChange("valueField", "");
                   handleElementPropertyChange("displayField", "");
@@ -1038,7 +1053,14 @@ export function PropertiesPanel({
                     <FormLabel>Display Field</FormLabel>
                     <Select
                       value={selectedElement.displayField || ""}
-                      onValueChange={(value) => handleElementPropertyChange("displayField", value)}
+                      onValueChange={(value) => {
+                        handleElementPropertyChange("displayField", value);
+                        // Also update old format for backward compatibility
+                        handleElementPropertyChange("dataSource", { 
+                          ...(selectedElement.dataSource || {}), 
+                          field: value 
+                        });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select field to display" />
@@ -1057,7 +1079,9 @@ export function PropertiesPanel({
                     <FormLabel>Value Field</FormLabel>
                     <Select
                       value={selectedElement.valueField || ""}
-                      onValueChange={(value) => handleElementPropertyChange("valueField", value)}
+                      onValueChange={(value) => {
+                        handleElementPropertyChange("valueField", value);
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select field for value" />
