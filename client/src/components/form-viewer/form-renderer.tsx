@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApprovalButton } from "./approval-button";
 import { DataTable } from "./data-table";
 import { Gallery } from "./gallery";
@@ -617,6 +618,51 @@ export function FormRenderer({
         
       case "divider":
         return <Separator className="my-4" />;
+        
+      case "tabs":
+        if (!element.tabs || !Array.isArray(element.tabs) || element.tabs.length === 0) {
+          return (
+            <div className="text-center py-4 border border-dashed rounded-md border-gray-300">
+              <p className="text-sm text-muted-foreground">
+                No tabs configured. Please add tabs in the form builder.
+              </p>
+            </div>
+          );
+        }
+        
+        return (
+          <div className="w-full my-4">
+            {label && <h3 className="text-lg font-medium mb-3">{label}</h3>}
+            {helpText && <p className="text-sm text-gray-500 mb-2">{helpText}</p>}
+            <Tabs defaultValue={element.tabs[0]?.id} className="w-full">
+              <TabsList className="w-full">
+                {element.tabs.map((tab: { id: string; label: string }) => (
+                  <TabsTrigger key={tab.id} value={tab.id} className="flex-1">
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              
+              {element.tabs.map((tab: { id: string; label: string }) => (
+                <TabsContent key={tab.id} value={tab.id} className="pt-4 space-y-4">
+                  {element.elements?.filter((child: FormElement) => child.tabId === tab.id).map((childElement: FormElement) => (
+                    <div key={childElement.id} className="mb-4">
+                      {renderFormElement(childElement)}
+                    </div>
+                  ))}
+                  
+                  {(!element.elements?.some((child: FormElement) => child.tabId === tab.id)) && (
+                    <div className="text-center py-4 border border-dashed rounded-md border-gray-300">
+                      <p className="text-sm text-muted-foreground">
+                        No elements in this tab. Drag and drop form elements here.
+                      </p>
+                    </div>
+                  )}
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+        );
         
       case "button":
         // Use our ApprovalButton component

@@ -9,6 +9,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,20 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
-import { Plus, RefreshCw, Code, Info, HelpCircle, Trash2, Table, Settings, PlusCircle } from "lucide-react";
+import { 
+  Plus, 
+  RefreshCw, 
+  Code, 
+  Info, 
+  HelpCircle, 
+  Trash2, 
+  Table, 
+  Settings, 
+  PlusCircle,
+  ChevronUp,
+  ChevronDown,
+  Trash
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ActionEditor } from "./action-editor";
 import { ButtonPropertiesEditor } from "./button-properties-editor";
@@ -74,7 +88,7 @@ export function PropertiesPanel({
   }, [selectedElement]);
 
   const [activeTab, setActiveTab] = useState<
-    "basic" | "validation" | "data" | "advanced" | "actions" | "formulas"
+    "basic" | "validation" | "data" | "advanced" | "actions" | "formulas" | "tabs"
   >("basic");
 
   const [activeDataSource, setActiveDataSource] = useState<any>(null);
@@ -348,6 +362,42 @@ export function PropertiesPanel({
     [columns[index], columns[newIndex]] = [columns[newIndex], columns[index]];
     handleElementPropertyChange("columns", columns);
   };
+  
+  // Tab management functions
+  const addTab = () => {
+    const tabs = [...(localElement?.tabs || [])];
+    const tabId = `tab_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    tabs.push({
+      id: tabId,
+      label: `Tab ${tabs.length + 1}`,
+      elements: []
+    });
+    handleElementPropertyChange("tabs", tabs);
+  };
+
+  const removeTab = (index: number) => {
+    const tabs = [...(localElement?.tabs || [])];
+    tabs.splice(index, 1);
+    handleElementPropertyChange("tabs", tabs);
+  };
+
+  const updateTabLabel = (index: number, label: string) => {
+    const tabs = [...(localElement?.tabs || [])];
+    tabs[index] = { ...tabs[index], label };
+    handleElementPropertyChange("tabs", tabs);
+  };
+
+  const moveTab = (index: number, direction: "up" | "down") => {
+    if (!localElement?.tabs) return;
+    
+    const tabs = [...localElement.tabs];
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    
+    if (newIndex < 0 || newIndex >= tabs.length) return;
+    
+    [tabs[index], tabs[newIndex]] = [tabs[newIndex], tabs[index]];
+    handleElementPropertyChange("tabs", tabs);
+  };
 
   // Helper function to initialize columns from data source
   useEffect(() => {
@@ -609,6 +659,93 @@ export function PropertiesPanel({
     </div>
   );
 
+  // Tab Properties - render only for tabs element type
+  const renderTabsProperties = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium">Tab Configuration</h3>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addTab}
+          className="h-8"
+        >
+          <Plus className="h-4 w-4 mr-1" /> Add Tab
+        </Button>
+      </div>
+
+      {(!localElement?.tabs || localElement.tabs.length === 0) && (
+        <div className="text-center py-4 border border-dashed rounded-md border-gray-300">
+          <p className="text-sm text-muted-foreground">
+            No tabs configured yet. Add tabs to create a tabbed interface.
+          </p>
+        </div>
+      )}
+
+      {localElement?.tabs && localElement.tabs.length > 0 && (
+        <div className="space-y-2 mt-2">
+          {localElement.tabs.map((tab: { id: string; label: string }, index: number) => (
+            <div key={tab.id} className="border rounded-md p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-medium">Tab {index + 1}</h4>
+                <div className="flex space-x-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => moveTab(index, "up")}
+                    disabled={index === 0}
+                    className="h-7 w-7"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => moveTab(index, "down")}
+                    disabled={index === localElement.tabs.length - 1}
+                    className="h-7 w-7"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeTab(index)}
+                    className="h-7 w-7 text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 gap-2">
+                  <Label htmlFor={`tab-${index}-label`}>Label</Label>
+                  <Input
+                    id={`tab-${index}-label`}
+                    value={tab.label}
+                    onChange={(e) => updateTabLabel(index, e.target.value)}
+                    className="h-8"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      <div className="mt-4 bg-muted/50 rounded-md p-3">
+        <p className="text-sm text-muted-foreground">
+          <Info className="h-4 w-4 inline-block mr-1" />
+          After adding tabs, drag and drop form elements onto each tab in the form canvas.
+        </p>
+      </div>
+    </div>
+  );
+  
   const renderAdvancedProperties = () => (
     <div className="space-y-4">
       <FormField
@@ -1424,6 +1561,19 @@ export function PropertiesPanel({
               Actions
             </button>
           )}
+          
+          {selectedElement.type === "tabs" && (
+            <button
+              className={`px-3 py-2 text-sm font-medium ${
+                activeTab === "tabs"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("tabs")}
+            >
+              Tabs
+            </button>
+          )}
 
           <button
             className={`px-3 py-2 text-sm font-medium ${
@@ -1435,8 +1585,6 @@ export function PropertiesPanel({
           >
             Advanced
           </button>
-          
-
         </div>
       </div>
 
@@ -1461,7 +1609,7 @@ export function PropertiesPanel({
                 formElements={form.getValues().elements || []}
               />
             )}
-
+            {activeTab === "tabs" && selectedElement.type === "tabs" && renderTabsProperties()}
             {activeTab === "advanced" && renderAdvancedProperties()}
           </form>
         </Form>

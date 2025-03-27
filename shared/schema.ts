@@ -50,7 +50,7 @@ const formElementBase = z.object({
     "radio", "checkbox", "toggle", "section", "column", "divider",
     "button", "datatable", "combobox", "multiselect", "email", "password",
     "phone", "url", "datetime", "time", "file", "image", "signature",
-    "barcode", "chart", "spacer", "slider", "rating"
+    "barcode", "chart", "spacer", "slider", "rating", "tabs", "accordion", "html"
   ]),
   label: z.string(),
   name: z.string(),
@@ -128,6 +128,12 @@ export const formElementSchema: z.ZodType<any> = formElementBase.extend({
     elements: z.array(z.lazy(() => formElementSchema)).optional()
   })).optional(),
   elements: z.array(z.lazy(() => formElementSchema)).optional(),
+  // For tabs component
+  tabs: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    elements: z.array(z.lazy(() => formElementSchema)).optional()
+  })).optional(),
 });
 
 export type FormElement = z.infer<typeof formElementSchema>;
