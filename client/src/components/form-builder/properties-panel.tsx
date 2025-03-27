@@ -869,43 +869,12 @@ export function PropertiesPanel({
             {/* Data Source Options Configuration */}
             {localElement?.optionsSourceType === "dataSource" && (
               <div className="space-y-4">
-                {/* Data Source Selector */}
-                <div className="mb-4">
-                  <FormLabel className="text-xs">Data Source</FormLabel>
-                  <Select
-                    value={localElement.dataSourceId?.toString() || ""}
-                    onValueChange={(value) => {
-                      // This function handles the data source selector within the optionsSource section
-                      const sourceId = parseInt(value, 10);
-                      if (!isNaN(sourceId)) {
-                        const updatedElement = { 
-                          ...localElement, 
-                          // Update both formats for compatibility
-                          dataSourceId: sourceId,
-                          dataSource: { 
-                            ...localElement.dataSource, 
-                            id: sourceId 
-                          }
-                        };
-                        setLocalElement(updatedElement);
-                        onElementUpdate(updatedElement);
-                        
-                        // Fetch the data source fields
-                        fetchDataSource(sourceId);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select data source" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dataSources?.map((source: { id: number; name: string }) => (
-                        <SelectItem key={source.id} value={source.id.toString()}>
-                          {source.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Note about data source */}
+                <div className="mb-4 p-3 border rounded-md bg-blue-50 text-blue-800">
+                  <p className="text-sm">
+                    <Info className="h-4 w-4 inline-block mr-1" />
+                    Use the Data Source selector at the top of this panel to connect to a data source.
+                  </p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
