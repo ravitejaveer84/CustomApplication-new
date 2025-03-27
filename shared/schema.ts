@@ -108,7 +108,8 @@ const formElementBase = z.object({
     width: z.number().optional(),
     sortable: z.boolean().optional(),
     filterable: z.boolean().optional(),
-    visible: z.boolean().optional()
+    visible: z.boolean().optional(),
+    editable: z.boolean().optional()
   })).optional(),
   pagination: z.boolean().optional(),
   searchable: z.boolean().optional(),

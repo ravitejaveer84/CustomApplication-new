@@ -319,6 +319,7 @@ export function PropertiesPanel({
       header: "New Column",
       visible: true,
       sortable: false,
+      editable: false,
       width: 120
     });
     handleElementPropertyChange("columns", columns);
@@ -364,6 +365,7 @@ export function PropertiesPanel({
           header: field.name,
           visible: true,
           sortable: field.type === "number" || field.type === "date",
+          editable: false,
           width: 120
         }));
       handleElementPropertyChange("columns", initialColumns);
@@ -1122,7 +1124,7 @@ export function PropertiesPanel({
 
               {localElement?.columns && localElement.columns.length > 0 && (
                 <div>
-                  {localElement.columns.map((column: { field: string; header: string; visible?: boolean; width?: number; sortable?: boolean }, index: number) => (
+                  {localElement.columns.map((column: { field: string; header: string; visible?: boolean; width?: number; sortable?: boolean; editable?: boolean }, index: number) => (
                     <div 
                       key={index} 
                       className="mb-4 p-3 border rounded-md bg-gray-50 relative group"
@@ -1233,7 +1235,7 @@ export function PropertiesPanel({
                           />
                         </div>
                         <div className="flex flex-col justify-end">
-                          <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-4 flex-wrap">
                             <div className="flex items-center space-x-2">
                               <Checkbox
                                 id={`visible-${index}`}
@@ -1252,6 +1254,16 @@ export function PropertiesPanel({
                               />
                               <label htmlFor={`sortable-${index}`} className="text-xs cursor-pointer">
                                 Sortable
+                              </label>
+                            </div>
+                            <div className="flex items-center space-x-2 mt-2">
+                              <Checkbox
+                                id={`editable-${index}`}
+                                checked={column.editable === true}
+                                onCheckedChange={(checked) => updateColumn(index, "editable", !!checked)}
+                              />
+                              <label htmlFor={`editable-${index}`} className="text-xs cursor-pointer">
+                                Editable
                               </label>
                             </div>
                           </div>

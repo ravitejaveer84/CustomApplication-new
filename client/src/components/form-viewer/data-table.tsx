@@ -10,9 +10,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormElement } from "@shared/schema";
-import { Download, Search, ArrowUpDown } from "lucide-react";
+import { Download, Search, ArrowUpDown, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 
 interface DataTableProps {
@@ -30,6 +31,10 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredData, setFilteredData] = useState<any[]>([]);
+  const [editingCell, setEditingCell] = useState<{rowIndex: number, field: string} | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
 
   const rowsPerPage = element.rowsPerPage || 10;
   const isSearchable = element.searchable !== false;
@@ -87,6 +92,7 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
     header?: string;
     visible?: boolean;
     sortable?: boolean;
+    editable?: boolean;
     width?: number;
   };
 
@@ -189,6 +195,91 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
 
   // Visible columns
   const visibleColumns = element.columns?.filter((col: TableColumn) => col.visible !== false) || [];
+  
+  // Start editing a cell
+  const startEditing = (rowIndex: number, field: string, value: any) => {
+    // Convert the actual row index to the index in the paginated data
+    const actualRowIndex = startIndex + rowIndex;
+    
+    setEditingCell({ rowIndex: actualRowIndex, field });
+    setEditValue(value !== null && value !== undefined ? String(value) : "");
+  };
+  
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingCell(null);
+    setEditValue("");
+  };
+  
+  // Save edited cell value
+  const saveEditedCell = async () => {
+    if (!editingCell) return;
+    
+    const { rowIndex, field } = editingCell;
+    try {
+      setSaving(true);
+      
+      // Get data source ID
+      const dataSourceId = element.dataSourceId || element.dataSource?.id;
+      if (!dataSourceId) {
+        toast({
+          title: "Error",
+          description: "No data source connected to this table",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Get the current row
+      const row = filteredData[rowIndex];
+      if (!row) return;
+      
+      // Create an updated version of the row
+      const updatedRow = { ...row, [field]: editValue };
+      
+      // Send update to the server
+      await apiRequest(
+        `/api/datasources/${dataSourceId}/data/${rowIndex}`,
+        {
+          method: "PUT",
+          data: updatedRow,
+        }
+      );
+      
+      // Update the local data
+      const newData = [...filteredData];
+      newData[rowIndex] = updatedRow;
+      setFilteredData(newData);
+      
+      // Also update the full data array
+      const fullDataIndex = data.findIndex(
+        item => JSON.stringify(item) === JSON.stringify(row)
+      );
+      if (fullDataIndex !== -1) {
+        const newFullData = [...data];
+        newFullData[fullDataIndex] = updatedRow;
+        setData(newFullData);
+      }
+      
+      toast({
+        title: "Success",
+        description: "Value updated successfully",
+      });
+      
+      // Reset the editing state
+      setEditingCell(null);
+      setEditValue("");
+    } catch (error) {
+      console.error("Error updating cell:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update the value",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -300,13 +391,67 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
           <TableBody>
             {paginatedData.map((row, rowIndex) => (
               <TableRow key={rowIndex}>
-                {visibleColumns.map((column: TableColumn) => (
-                  <TableCell key={column.field}>
-                    {row[column.field] !== undefined && row[column.field] !== null
-                      ? String(row[column.field])
-                      : ''}
-                  </TableCell>
-                ))}
+                {visibleColumns.map((column: TableColumn) => {
+                  const value = row[column.field];
+                  const isEditing = 
+                    editingCell !== null && 
+                    editingCell.rowIndex === startIndex + rowIndex && 
+                    editingCell.field === column.field;
+                  
+                  return (
+                    <TableCell key={column.field}>
+                      {isEditing ? (
+                        <div className="flex items-center space-x-1">
+                          <Input
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="h-8 py-1"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                saveEditedCell();
+                              } else if (e.key === 'Escape') {
+                                cancelEditing();
+                              }
+                            }}
+                          />
+                          <div className="flex space-x-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8" 
+                              onClick={saveEditedCell}
+                              disabled={saving}
+                            >
+                              <Check className="h-4 w-4 text-green-600" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8" 
+                              onClick={cancelEditing}
+                              disabled={saving}
+                            >
+                              <X className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={column.editable ? "cursor-pointer hover:bg-gray-50 p-1 rounded" : ""}
+                            onClick={() => {
+                              if (column.editable && !editingCell) {
+                                startEditing(rowIndex, column.field, value);
+                              }
+                            }}
+                        >
+                          {value !== undefined && value !== null
+                            ? String(value)
+                            : ''}
+                        </div>
+                      )}
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             ))}
           </TableBody>

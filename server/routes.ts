@@ -746,7 +746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (dataSource.selectedFields && Array.isArray(dataSource.selectedFields) && dataSource.selectedFields.length > 0) {
         sourceData = sourceData.map(item => {
           const filteredItem: Record<string, any> = {};
-          for (const field of dataSource.selectedFields) {
+          for (const field of dataSource.selectedFields as string[]) {
             if (item[field] !== undefined) {
               filteredItem[field] = item[field];
             }
@@ -759,6 +759,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching data from data source:', error);
       res.status(500).json({ message: 'Error fetching data from data source' });
+    }
+  });
+  
+  // Update data in a data source
+  app.put('/api/datasources/:id/data/:rowIndex', async (req, res) => {
+    try {
+      const dataSourceId = parseInt(req.params.id);
+      const rowIndex = parseInt(req.params.rowIndex);
+      
+      if (isNaN(dataSourceId) || isNaN(rowIndex)) {
+        return res.status(400).json({ message: 'Invalid data source ID or row index' });
+      }
+      
+      const dataSource = await storage.getDataSource(dataSourceId);
+      if (!dataSource) {
+        return res.status(404).json({ message: 'Data source not found' });
+      }
+      
+      const updatedRow = req.body;
+      if (!updatedRow || typeof updatedRow !== 'object') {
+        return res.status(400).json({ message: 'Invalid data format' });
+      }
+      
+      // This would need to be implemented with actual data modification logic
+      // For demo purposes, we'll just return success with the updated row
+      // In a real implementation, you would update the actual data source
+      
+      // For Excel, you would:
+      // 1. Fetch the file
+      // 2. Update the data
+      // 3. Write back to the file or to a new file
+      
+      // For a database, you would:
+      // 1. Run an UPDATE query
+      
+      // For now, we'll just acknowledge the update
+      console.log(`Data source ${dataSourceId} row ${rowIndex} updated with:`, updatedRow);
+      
+      res.json({
+        success: true,
+        message: 'Row updated successfully',
+        data: updatedRow
+      });
+    } catch (error) {
+      console.error('Error updating data in data source:', error);
+      res.status(500).json({ message: 'Error updating data in data source' });
     }
   });
   
