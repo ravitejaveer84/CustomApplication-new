@@ -207,10 +207,25 @@ export function FormRenderer({
         
         // Fetch dropdown options from data source if configured
         useEffect(() => {
-          // Simplified approach - just use the dataSourceId property directly
-          let dataSourceId = element.dataSourceId;
+          // Support both old and new data source formats
+          // The old format used dataSource.id while the new format uses dataSourceId
+          let dataSourceId = element.dataSourceId || element.dataSource?.id;
+          
+          // Get display and value fields
           let displayField = element.displayField || element.dataSource?.field;
           let valueField = element.valueField || displayField;
+          
+          console.log("Element data source config:", { 
+            dataSourceId, 
+            displayField, 
+            valueField, 
+            oldFormat: element.dataSource,
+            newFormat: {
+              dataSourceId: element.dataSourceId,
+              valueField: element.valueField, 
+              displayField: element.displayField
+            }
+          });
           
           // Clear dropdownOptions if we're changing to static mode
           // Check both property formats
@@ -300,7 +315,16 @@ export function FormRenderer({
             
             fetchDropdownData();
           }
-        }, [element.dataSourceId, element.displayField, element.valueField, element.optionsSource, element.optionsSourceType]);
+        }, [
+          // Both old and new formats for data source properties  
+          element.dataSourceId, 
+          element.dataSource?.id,
+          element.displayField, 
+          element.dataSource?.field,
+          element.valueField, 
+          element.optionsSource, 
+          element.optionsSourceType
+        ]);
         
         // Logic for determining options to display:
         // 1. If in data source mode with options loaded, use data source options

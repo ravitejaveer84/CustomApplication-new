@@ -156,21 +156,32 @@ export function PropertiesPanel({
   
   // Handle data source selection from dropdown form elements
   useEffect(() => {
-    const elementDataSourceId = localElement?.dataSourceId;
+    // Track data source ID from either format
+    const elementDataSourceId = localElement?.dataSourceId || localElement?.dataSource?.id;
+    
     if (elementDataSourceId && elementDataSourceId !== dataSourceId) {
+      // When the element's data source changes, fetch the new data source
       fetchDataSource(elementDataSourceId);
-      setActiveSourceFields([]);
     }
-  }, [localElement?.dataSourceId, dataSourceId, fetchDataSource]);
+  }, [localElement?.dataSourceId, localElement?.dataSource?.id, dataSourceId, fetchDataSource]);
 
   useEffect(() => {
     // Check for dataSourceId in either format (new or old)
     const dataSourceId = selectedElement?.dataSourceId || selectedElement?.dataSource?.id;
     
     if (dataSourceId) {
+      // Set loading state
+      setActiveSourceFields([]);
+      
       fetch(`/api/datasources/${dataSourceId}`)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch data source: ${res.status}`);
+          }
+          return res.json();
+        })
         .then((data) => {
+          console.log("Loaded data source:", data);
           setActiveDataSource(data);
           setActiveSourceFields(Array.isArray(data.fields) ? data.fields : []);
         })
@@ -740,9 +751,10 @@ export function PropertiesPanel({
           </div>
           <Select
             value={
-              !localElement?.dataSource?.id || localElement.dataSource.id === 0
-                ? "none"
-                : localElement.dataSource.id.toString()
+              // Check both formats for data source ID to ensure consistent selection
+              (localElement?.dataSourceId || localElement?.dataSource?.id) 
+                ? (localElement?.dataSourceId || localElement?.dataSource?.id).toString()
+                : "none"
             }
             onValueChange={handleDataSourceChange}
           >
@@ -913,7 +925,7 @@ export function PropertiesPanel({
                       onValueChange={(value) => {
                         handleFormFieldChange("valueField", value);
                       }}
-                      disabled={!localElement?.dataSourceId && !localElement?.dataSource?.id}
+                      disabled={!(localElement?.dataSourceId || localElement?.dataSource?.id)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select field" />
@@ -937,7 +949,7 @@ export function PropertiesPanel({
                       onValueChange={(value) => {
                         handleFormFieldChange("displayField", value);
                       }}
-                      disabled={!localElement?.dataSourceId && !localElement?.dataSource?.id}
+                      disabled={!(localElement?.dataSourceId || localElement?.dataSource?.id)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select field" />
