@@ -79,8 +79,21 @@ export function PropertiesPanel({
 
   const [activeDataSource, setActiveDataSource] = useState<any>(null);
   const [activeSourceFields, setActiveSourceFields] = useState<any[]>([]);
+  const [dataSources, setDataSources] = useState<any[]>([]);
   // Renamed to avoid conflict with other state variables
   const [dataSourceState, setDataSourceState] = useState<any>(null);
+  
+  // Fetch all available data sources when component mounts
+  useEffect(() => {
+    fetch('/api/datasources')
+      .then(res => res.json())
+      .then(data => {
+        setDataSources(data);
+      })
+      .catch(error => {
+        console.error('Error fetching data sources:', error);
+      });
+  }, []);
 
   const form = useForm<FormElement>({
     defaultValues: selectedElement || {
@@ -735,29 +748,35 @@ export function PropertiesPanel({
                 <Select
                   value={localElement?.optionsSourceType || "static"}
                   onValueChange={(value) => {
-                    handleFormFieldChange("optionsSourceType", value);
-                    // Clear any existing options data when changing type
+                    console.log("Changing source type to:", value);
+                    
+                    // Create a complete updated element to avoid partial updates
+                    const updatedElement = { ...localElement, optionsSourceType: value };
+                    
                     if (value === "static") {
-                      // When switching to static, clear the data source fields
-                      handleFormFieldChange("dataSourceId", null);
-                      handleFormFieldChange("valueField", "");
-                      handleFormFieldChange("displayField", "");
+                      // When switching to static, remove data source properties
+                      delete updatedElement.dataSourceId;
+                      delete updatedElement.valueField;
+                      delete updatedElement.displayField;
                       
-                      // Initialize options array if needed
-                      if (!localElement?.options || !Array.isArray(localElement.options)) {
-                        handleFormFieldChange("options", [
+                      // Make sure we have options
+                      if (!updatedElement.options || !Array.isArray(updatedElement.options)) {
+                        updatedElement.options = [
                           { label: "Option 1", value: "option1" },
                           { label: "Option 2", value: "option2" }
-                        ]);
+                        ];
                       }
-                    } else if (value === "dataSource") {
-                      // When switching to data source, make sure we have a clean slate
-                      if (!localElement?.dataSourceId) {
-                        handleFormFieldChange("dataSourceId", null);
-                        handleFormFieldChange("valueField", "");
-                        handleFormFieldChange("displayField", "");
-                      }
+                    } 
+                    else if (value === "dataSource") {
+                      // When switching to data source, initialize data source properties
+                      updatedElement.dataSourceId = updatedElement.dataSourceId || null;
+                      updatedElement.valueField = updatedElement.valueField || "";
+                      updatedElement.displayField = updatedElement.displayField || "";
                     }
+                    
+                    // Update the entire element at once
+                    setLocalElement(updatedElement);
+                    onElementUpdate(updatedElement);
                   }}
                 >
                   <SelectTrigger className="h-8 w-28">
@@ -801,7 +820,7 @@ export function PropertiesPanel({
                 
                 {localElement?.options && localElement.options.length > 0 && (
                   <div className="space-y-2">
-                    {localElement.options.map((option, index) => (
+                    {localElement.options.map((option: { label: string; value: string }, index: number) => (
                       <div key={index} className="flex items-center space-x-2">
                         <Input
                           value={option.label || ""}
@@ -846,6 +865,36 @@ export function PropertiesPanel({
             {/* Data Source Options Configuration */}
             {localElement?.optionsSourceType === "dataSource" && (
               <div className="space-y-4">
+                {/* Data Source Selector */}
+                <div className="mb-4">
+                  <FormLabel className="text-xs">Data Source</FormLabel>
+                  <Select
+                    value={localElement.dataSourceId?.toString() || ""}
+                    onValueChange={(value) => {
+                      const sourceId = parseInt(value, 10);
+                      if (!isNaN(sourceId)) {
+                        const updatedElement = { ...localElement, dataSourceId: sourceId };
+                        setLocalElement(updatedElement);
+                        onElementUpdate(updatedElement);
+                        
+                        // Fetch the data source fields
+                        fetchDataSource(sourceId);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select data source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dataSources?.map((source: { id: number; name: string }) => (
+                        <SelectItem key={source.id} value={source.id.toString()}>
+                          {source.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <FormLabel className="text-xs">Value Field</FormLabel>
@@ -1051,7 +1100,7 @@ export function PropertiesPanel({
 
               {localElement?.columns && localElement.columns.length > 0 && (
                 <div>
-                  {localElement.columns.map((column: any, index: number) => (
+                  {localElement.columns.map((column: { field: string; header: string; visible?: boolean; width?: number; sortable?: boolean }, index: number) => (
                     <div 
                       key={index} 
                       className="mb-4 p-3 border rounded-md bg-gray-50 relative group"
