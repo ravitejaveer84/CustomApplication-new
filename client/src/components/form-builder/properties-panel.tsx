@@ -232,6 +232,8 @@ export function PropertiesPanel({
       const updated = {
         ...localElement,
         dataSource: { id: null, field: "" },
+        // Also update dataSourceId to keep both formats in sync
+        dataSourceId: null,
       };
       setLocalElement(updated);
       onElementUpdate(updated);
@@ -246,6 +248,8 @@ export function PropertiesPanel({
       const updated = {
         ...localElement,
         dataSource: { id: sourceId, field: "" },
+        // Also update dataSourceId to keep both formats in sync
+        dataSourceId: sourceId,
       };
       setLocalElement(updated);
       onElementUpdate(updated);
@@ -871,10 +875,12 @@ export function PropertiesPanel({
                   <Select
                     value={localElement.dataSourceId?.toString() || ""}
                     onValueChange={(value) => {
+                      // This function handles the data source selector within the optionsSource section
                       const sourceId = parseInt(value, 10);
                       if (!isNaN(sourceId)) {
                         const updatedElement = { 
                           ...localElement, 
+                          // Update both formats for compatibility
                           dataSourceId: sourceId,
                           dataSource: { 
                             ...localElement.dataSource, 
