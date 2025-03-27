@@ -442,7 +442,8 @@ export function FormCanvas({
                 
                 {element.tabs.map((tab: { id: string; label: string }) => {
                   // Filter child elements that belong to this tab
-                  const tabElements = formElements.filter((el) => el.tabId === tab.id);
+                  // Get child elements for this tab from the element's elements array
+                  const tabElements = element.elements?.filter((el) => el.tabId === tab.id) || [];
                   
                   return (
                     <TabsContent key={tab.id} value={tab.id} className="pt-2">
@@ -477,8 +478,21 @@ export function FormCanvas({
                             // Associate this element with the current tab
                             newElement.tabId = tab.id;
                             
-                            // Add it to the form elements
-                            onElementsChange([...formElements, newElement]);
+                            // Add to the tab element's elements array
+                            const updatedElement = {
+                              ...element,
+                              elements: [...(element.elements || []), newElement]
+                            };
+                            
+                            // Update the form elements array
+                            const updatedElements = formElements.map(el => 
+                              el.id === element.id ? updatedElement : el
+                            );
+                            
+                            // Select the new element for editing its properties
+                            setTimeout(() => onElementSelect(newElement), 0);
+                            
+                            onElementsChange(updatedElements);
                           }}
                         >
                           <div className="text-center text-gray-500">

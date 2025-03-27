@@ -127,9 +127,29 @@ export default function FormBuilder() {
   };
   
   const handleElementUpdate = (updatedElement: FormElement) => {
-    const updatedElements = formElements.map(el => 
-      el.id === updatedElement.id ? updatedElement : el
-    );
+    // Function to find and update nested elements
+    const updateNestedElements = (elements: FormElement[]): FormElement[] => {
+      return elements.map(el => {
+        // If this is the element we're updating, replace it
+        if (el.id === updatedElement.id) {
+          return updatedElement;
+        }
+        
+        // If this element has nested elements (tabs, sections, columns), check them too
+        if (el.elements && el.elements.length > 0) {
+          // Create a new object to avoid mutating the original
+          return {
+            ...el,
+            elements: updateNestedElements(el.elements)
+          };
+        }
+        
+        // Otherwise return the original element
+        return el;
+      });
+    };
+    
+    const updatedElements = updateNestedElements(formElements);
     setFormElements(updatedElements);
   };
   
