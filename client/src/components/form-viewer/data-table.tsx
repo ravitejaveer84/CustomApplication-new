@@ -16,6 +16,78 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 
+// PowerApps-like formula evaluator
+const evaluateFilterExpression = (expression: string, item: any, formData: Record<string, any>): boolean => {
+  if (!expression) return true;
+  
+  try {
+    // Replace field references with actual values
+    let processedExpression = expression;
+    
+    // Match field references in single quotes like 'FieldName'
+    const fieldRegex = /'([^']+)'/g;
+    let match;
+    while ((match = fieldRegex.exec(expression)) !== null) {
+      const fieldName = match[1];
+      // Replace field reference with the actual value from formData
+      const fieldValue = formData[fieldName] !== undefined ? JSON.stringify(formData[fieldName]) : "null";
+      processedExpression = processedExpression.replace(`'${fieldName}'`, fieldValue);
+    }
+    
+    // Simple implementation of common PowerApps functions
+    const filter = (items: any[], predicate: (item: any) => boolean) => {
+      if (!Array.isArray(items)) return [];
+      return items.filter(predicate);
+    };
+    
+    const startsWith = (text: string, prefix: string) => {
+      if (typeof text !== 'string' || typeof prefix !== 'string') return false;
+      return text.startsWith(prefix);
+    };
+    
+    const endsWith = (text: string, suffix: string) => {
+      if (typeof text !== 'string' || typeof suffix !== 'string') return false;
+      return text.endsWith(suffix);
+    };
+    
+    const contains = (text: string, substring: string) => {
+      if (typeof text !== 'string' || typeof substring !== 'string') return false;
+      return text.includes(substring);
+    };
+    
+    const isBlank = (value: any) => {
+      return value === null || value === undefined || value === '';
+    };
+    
+    const isEmpty = (collection: any[]) => {
+      return !Array.isArray(collection) || collection.length === 0;
+    };
+    
+    // Make item properties available to the evaluation
+    const itemProperties = { ...item };
+    
+    // Create a function context with all available functions and properties
+    const context = {
+      ...itemProperties,
+      Filter: filter,
+      StartsWith: startsWith,
+      EndsWith: endsWith,
+      Contains: contains,
+      IsBlank: isBlank,
+      IsEmpty: isEmpty
+    };
+    
+    // Create a function to evaluate the expression with the context
+    const evalFn = new Function(...Object.keys(context), `return ${processedExpression};`);
+    
+    // Execute the function with the context values
+    return !!evalFn(...Object.values(context));
+  } catch (error) {
+    console.error("Error evaluating filter expression:", error);
+    return true; // Default to showing the item if there's an error
+  }
+};
+
 interface DataTableProps {
   element: FormElement;
   formId: number;
@@ -96,25 +168,38 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
     width?: number;
   };
 
-  // Filter data based on search term
+  // Filter data based on search term and/or filter expression
   useEffect(() => {
-    if (!data.length || !searchTerm.trim()) {
-      setFilteredData(data);
+    if (!data.length) {
+      setFilteredData([]);
       return;
     }
-
-    const searchTermLower = searchTerm.toLowerCase();
-    const filtered = data.filter(row => {
-      return element.columns?.some((column: TableColumn) => {
-        const value = row[column.field];
-        if (value === null || value === undefined) return false;
-        return String(value).toLowerCase().includes(searchTermLower);
+    
+    // First apply filter expression if present
+    let filteredResult = data;
+    
+    // Apply PowerApps-like filter expression if present
+    if (element.filterExpression && formData) {
+      console.log("Applying filter expression:", element.filterExpression);
+      filteredResult = data.filter(item => evaluateFilterExpression(element.filterExpression || "", item, formData || {}));
+      console.log(`Filter expression reduced data from ${data.length} to ${filteredResult.length} items`);
+    }
+    
+    // Then apply search term if present
+    if (searchTerm.trim()) {
+      const searchTermLower = searchTerm.toLowerCase();
+      filteredResult = filteredResult.filter(row => {
+        return element.columns?.some((column: TableColumn) => {
+          const value = row[column.field];
+          if (value === null || value === undefined) return false;
+          return String(value).toLowerCase().includes(searchTermLower);
+        });
       });
-    });
+    }
 
-    setFilteredData(filtered);
+    setFilteredData(filteredResult);
     setCurrentPage(1); // Reset to first page after filtering
-  }, [searchTerm, data, element.columns]);
+  }, [searchTerm, data, element.columns, element.filterExpression, formData]);
 
   // Sort data
   const handleSort = (field: string) => {

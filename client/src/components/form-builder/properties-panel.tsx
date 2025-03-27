@@ -1094,6 +1094,38 @@ export function PropertiesPanel({
                 </FormItem>
               )}
             />
+
+            {/* PowerApps-like Filter Expression */}
+            <div className="border-t mt-6 pt-4">
+              <div className="flex items-center space-x-2 mb-1">
+                <h4 className="text-sm font-medium">Filter Expression</h4>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Use PowerApps-like formulas to filter data dynamically. Reference other fields in single quotes.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter filter expression"
+                  className="font-mono"
+                  value={localElement?.filterExpression || ""}
+                  onChange={(e) => handleFormFieldChange("filterExpression", e.target.value)}
+                  rows={3}
+                />
+              </FormControl>
+              <div className="mt-2 text-xs text-gray-500">
+                <p>Example: <code className="bg-muted px-1">StartsWith(Title, 'SearchBox')</code></p>
+                <p className="mt-1">Available functions: Filter, StartsWith, EndsWith, Contains, IsBlank, IsEmpty</p>
+              </div>
+            </div>
           </>
         )}
 
@@ -1402,16 +1434,7 @@ export function PropertiesPanel({
             Advanced
           </button>
           
-          <button
-            className={`px-3 py-2 text-sm font-medium ${
-              activeTab === "formulas"
-                ? "text-primary border-b-2 border-primary"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("formulas")}
-          >
-            Formulas
-          </button>
+
         </div>
       </div>
 
@@ -1438,7 +1461,6 @@ export function PropertiesPanel({
             )}
 
             {activeTab === "advanced" && renderAdvancedProperties()}
-            {activeTab === "formulas" && renderFormulaProperties()}
           </form>
         </Form>
       </div>
