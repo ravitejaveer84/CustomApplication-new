@@ -140,6 +140,15 @@ export function PropertiesPanel({
       setDataSourceState(null);
     }
   }, [dataSourceId, fetchDataSource]);
+  
+  // Handle data source selection from dropdown form elements
+  useEffect(() => {
+    const elementDataSourceId = localElement?.dataSourceId;
+    if (elementDataSourceId && elementDataSourceId !== dataSourceId) {
+      fetchDataSource(elementDataSourceId);
+      setActiveSourceFields([]);
+    }
+  }, [localElement?.dataSourceId, dataSourceId, fetchDataSource]);
 
   useEffect(() => {
     if (selectedElement?.dataSource?.id) {
@@ -729,13 +738,24 @@ export function PropertiesPanel({
                     handleFormFieldChange("optionsSourceType", value);
                     // Clear any existing options data when changing type
                     if (value === "static") {
+                      // When switching to static, clear the data source fields
                       handleFormFieldChange("dataSourceId", null);
                       handleFormFieldChange("valueField", "");
                       handleFormFieldChange("displayField", "");
-                    } else {
-                      // Default to empty array if switching to static
-                      if (!localElement?.options) {
-                        handleFormFieldChange("options", []);
+                      
+                      // Initialize options array if needed
+                      if (!localElement?.options || !Array.isArray(localElement.options)) {
+                        handleFormFieldChange("options", [
+                          { label: "Option 1", value: "option1" },
+                          { label: "Option 2", value: "option2" }
+                        ]);
+                      }
+                    } else if (value === "dataSource") {
+                      // When switching to data source, make sure we have a clean slate
+                      if (!localElement?.dataSourceId) {
+                        handleFormFieldChange("dataSourceId", null);
+                        handleFormFieldChange("valueField", "");
+                        handleFormFieldChange("displayField", "");
                       }
                     }
                   }}
@@ -834,7 +854,7 @@ export function PropertiesPanel({
                       onValueChange={(value) => {
                         handleFormFieldChange("valueField", value);
                       }}
-                      disabled={!localElement?.dataSourceId}
+                      disabled={!localElement?.dataSourceId && !localElement?.dataSource?.id}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select field" />
@@ -858,7 +878,7 @@ export function PropertiesPanel({
                       onValueChange={(value) => {
                         handleFormFieldChange("displayField", value);
                       }}
-                      disabled={!localElement?.dataSourceId}
+                      disabled={!localElement?.dataSourceId && !localElement?.dataSource?.id}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select field" />
