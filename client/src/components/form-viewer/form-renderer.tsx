@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ApprovalButton } from "./approval-button";
 import { DataTable } from "./data-table";
 import { Gallery } from "./gallery";
+import { FileUploader } from "./file-uploader";
 import { apiRequest } from "@/lib/queryClient";
 
 // PowerApps-like formula evaluator
@@ -92,13 +93,15 @@ interface FormRendererProps {
   formElements: FormElement[];
   defaultValues?: Record<string, any>;
   onSubmit?: (formData: Record<string, any>) => void;
+  onFileSelect?: (fieldName: string, file: File | null) => void;
 }
 
 export function FormRenderer({ 
   formId, 
   formElements, 
   defaultValues = {}, 
-  onSubmit 
+  onSubmit,
+  onFileSelect
 }: FormRendererProps) {
   const [formData, setFormData] = useState<Record<string, any>>(defaultValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -253,6 +256,24 @@ export function FormRenderer({
             {helpText && <p className="text-sm text-gray-500">{helpText}</p>}
             {showError && <p className="text-sm text-red-500">{errorMessage}</p>}
           </div>
+        );
+        
+      case "file":
+        return (
+          <FileUploader
+            name={name}
+            label={label}
+            required={required}
+            helpText={helpText}
+            accept={element.accept}
+            error={errorMessage}
+            onChange={(file) => {
+              handleChange(name, file);
+              if (onFileSelect && typeof onFileSelect === 'function') {
+                onFileSelect(name, file);
+              }
+            }}
+          />
         );
         
       case "textarea":

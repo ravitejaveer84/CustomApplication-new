@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -17,6 +17,8 @@ import session from 'express-session';
 import pgSession from 'connect-pg-simple';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
+import path from 'path';
+import { uploadSingleFile, getFileInfo, uploadToSharePoint, SharePointConfig } from './upload';
 
 // Session types
 declare module 'express-session' {
@@ -1176,6 +1178,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Error updating approval request' });
     }
   });
+
+  // File Upload API endpoints
+  app.post('/api/upload', isAuthenticated, uploadSingleFile('file'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      const file = req.file as Express.Multer.File;
+      const fileInfo = getFileInfo(file);
+      
+      res.json({
+        success: true,
+        file: fileInfo
+      });
+    } catch (error) {
+      console.error('File upload error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Error uploading file' 
+      });
+    }
+  });
+
+  // SharePoint upload endpoint
+  app.post('/api/upload/sharepoint', isAuthenticated, uploadSingleFile('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      // Get SharePoint config from request body
+      const { siteUrl, username, password, libraryName, folderPath } = req.body;
+      
+      if (!siteUrl || !username || !password || !libraryName) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'SharePoint configuration is incomplete. Required fields: siteUrl, username, password, libraryName'
+        });
+      }
+      
+      const sharePointConfig: SharePointConfig = {
+        siteUrl,
+        username,
+        password,
+        libraryName,
+        folderPath
+      };
+
+      const file = req.file as Express.Multer.File;
+      
+      // Upload to SharePoint
+      const uploadResult = await uploadToSharePoint(file, sharePointConfig);
+      
+      if (!uploadResult.success) {
+        return res.status(500).json(uploadResult);
+      }
+      
+      // Return file info and SharePoint URL
+      const fileInfo = getFileInfo(file);
+      
+      res.json({
+        success: true,
+        file: fileInfo,
+        sharePointUrl: uploadResult.url
+      });
+    } catch (error) {
+      console.error('SharePoint upload error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Error uploading to SharePoint' 
+      });
+    }
+  });
+
+  // File upload routes
+  app.post('/api/upload', isAuthenticated, uploadSingleFile('file'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+      
+      const fileInfo = getFileInfo(req.file);
+      
+      res.json({
+        success: true,
+        message: 'File uploaded successfully',
+        file: fileInfo
+      });
+    } catch (error) {
+      console.error('File upload error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Server error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  });
+  
+  app.post('/api/upload/sharepoint', isAuthenticated, uploadSingleFile('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+      
+      // Get SharePoint configuration from request
+      const sharePointConfig: SharePointConfig = {
+        siteUrl: req.body.siteUrl || '',
+        username: req.body.username || '',
+        password: req.body.password || '',
+        libraryName: req.body.libraryName || 'Documents',
+        folderPath: req.body.folderPath,
+      };
+      
+      // Upload to SharePoint (simulation in this case)
+      const sharePointResult = await uploadToSharePoint(req.file, sharePointConfig);
+      
+      // Also store locally for demo purposes
+      const fileInfo = getFileInfo(req.file);
+      
+      res.json({
+        success: true,
+        message: 'File uploaded successfully to SharePoint',
+        file: fileInfo,
+        sharePointUrl: sharePointResult.url,
+        sharePointResult
+      });
+    } catch (error) {
+      console.error('SharePoint upload error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: `SharePoint upload error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  });
+
+  // Serve uploaded files statically
+  const uploadsPath = path.join(process.cwd(), 'uploads');
+  app.use('/uploads', (req, res, next) => {
+    // Simple middleware to check if user is authenticated before serving files
+    if (req.session.isAuthenticated) {
+      next();
+    } else {
+      res.status(401).json({ message: 'Authentication required to access files' });
+    }
+  }, express.static(uploadsPath));
 
   const httpServer = createServer(app);
   return httpServer;

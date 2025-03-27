@@ -16,6 +16,7 @@ import Unauthorized from "@/pages/unauthorized";
 import Users from "@/pages/users";
 import Permissions from "@/pages/permissions";
 import ApprovalRequests from "@/pages/approval-requests";
+import FileUploadDemo from "@/pages/file-upload-demo";
 import { AuthProvider, RequireAuth, RequireAdmin } from "@/hooks/use-auth";
 
 function Router() {
