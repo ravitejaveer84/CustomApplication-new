@@ -712,7 +712,7 @@ export function FormRenderer({
   
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {formElements.map((element) => (
+      {formElements.filter(element => !element.tabId).map((element) => (
         <div key={element.id}>
           {renderFormElement(element)}
         </div>

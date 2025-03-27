@@ -691,7 +691,7 @@ export function FormCanvas({
       {/* Render form elements */}
       {formElements.length > 0 ? (
         <div className="space-y-6">
-          {formElements.map(element => (
+          {formElements.filter(element => !element.tabId).map(element => (
             <div key={element.id}>
               {renderFormElement(element)}
             </div>
