@@ -164,8 +164,11 @@ export function PropertiesPanel({
   }, [localElement?.dataSourceId, dataSourceId, fetchDataSource]);
 
   useEffect(() => {
-    if (selectedElement?.dataSource?.id) {
-      fetch(`/api/datasources/${selectedElement.dataSource.id}`)
+    // Check for dataSourceId in either format (new or old)
+    const dataSourceId = selectedElement?.dataSourceId || selectedElement?.dataSource?.id;
+    
+    if (dataSourceId) {
+      fetch(`/api/datasources/${dataSourceId}`)
         .then((res) => res.json())
         .then((data) => {
           setActiveDataSource(data);
@@ -180,7 +183,7 @@ export function PropertiesPanel({
       setActiveDataSource(null);
       setActiveSourceFields([]);
     }
-  }, [selectedElement?.dataSource?.id]);
+  }, [selectedElement?.dataSource?.id, selectedElement?.dataSourceId]);
 
   // General utility to update any property in the form element
   const handleFormFieldChange = (fieldName: string, value: any) => {
@@ -234,6 +237,9 @@ export function PropertiesPanel({
         dataSource: { id: null, field: "" },
         // Also update dataSourceId to keep both formats in sync
         dataSourceId: null,
+        // Clear value and display fields
+        valueField: "",
+        displayField: "",
       };
       setLocalElement(updated);
       onElementUpdate(updated);
@@ -243,16 +249,38 @@ export function PropertiesPanel({
     try {
       const response = await fetch(`/api/datasources/${sourceId}`);
       const data = await response.json();
+      
+      // Make sure we have fields available
+      const sourceFields = Array.isArray(data.fields) ? data.fields : [];
+      
       setActiveDataSource(data);
-      setActiveSourceFields(data.fields || []);
+      setActiveSourceFields(sourceFields);
+      
+      // Update element with new data source info
       const updated = {
         ...localElement,
         dataSource: { id: sourceId, field: "" },
         // Also update dataSourceId to keep both formats in sync
         dataSourceId: sourceId,
       };
+      
+      // Auto-select value and display fields if they're available and element uses them
+      if (sourceFields.length > 0 && 
+          (localElement.type === 'dropdown' || 
+           localElement.type === 'radio' || 
+           localElement.type === 'checkbox')) {
+        // Default to using first field for both value and display
+        if (!updated.valueField) {
+          updated.valueField = sourceFields[0].name;
+        }
+        if (!updated.displayField) {
+          updated.displayField = sourceFields[0].name;
+        }
+      }
+      
       setLocalElement(updated);
       onElementUpdate(updated);
+      
     } catch (error) {
       console.error("Error loading data source:", error);
     }
