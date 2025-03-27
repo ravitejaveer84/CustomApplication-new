@@ -797,6 +797,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For now, we'll just acknowledge the update
       console.log(`Data source ${dataSourceId} row ${rowIndex} updated with:`, updatedRow);
       
+      // Ensure we return a proper success response
       res.json({
         success: true,
         message: 'Row updated successfully',

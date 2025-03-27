@@ -237,14 +237,23 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
       // Create an updated version of the row
       const updatedRow = { ...row, [field]: editValue };
       
+      // Get the original index from the data array (this is needed for the API call)
+      // If we can't find it in the data array, use the rowIndex as a fallback
+      const originalIndex = data.findIndex(item => JSON.stringify(item) === JSON.stringify(row));
+      const indexToUse = originalIndex !== -1 ? originalIndex : rowIndex;
+      
       // Send update to the server
-      await apiRequest(
-        `/api/datasources/${dataSourceId}/data/${rowIndex}`,
+      const response = await apiRequest(
+        `/api/datasources/${dataSourceId}/data/${indexToUse}`,
         {
           method: "PUT",
           data: updatedRow,
         }
       );
+      
+      if (!response || !response.success) {
+        throw new Error(response?.message || "Unknown error");
+      }
       
       // Update the local data
       const newData = [...filteredData];
@@ -252,12 +261,9 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
       setFilteredData(newData);
       
       // Also update the full data array
-      const fullDataIndex = data.findIndex(
-        item => JSON.stringify(item) === JSON.stringify(row)
-      );
-      if (fullDataIndex !== -1) {
+      if (originalIndex !== -1) {
         const newFullData = [...data];
-        newFullData[fullDataIndex] = updatedRow;
+        newFullData[originalIndex] = updatedRow;
         setData(newFullData);
       }
       
@@ -273,7 +279,7 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
       console.error("Error updating cell:", error);
       toast({
         title: "Error",
-        description: "Failed to update the value",
+        description: error instanceof Error ? error.message : "Failed to update the value",
         variant: "destructive",
       });
     } finally {
