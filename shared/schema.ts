@@ -116,6 +116,9 @@ const formElementBase = z.object({
   exportable: z.boolean().optional(),
   resizableColumns: z.boolean().optional(),
   rowsPerPage: z.number().optional(),
+  
+  // PowerApps-like Items formula for filtering
+  filterExpression: z.string().optional(),
 });
 
 // Now define the full schema with recursive elements

@@ -74,7 +74,7 @@ export function PropertiesPanel({
   }, [selectedElement]);
 
   const [activeTab, setActiveTab] = useState<
-    "basic" | "validation" | "data" | "advanced" | "actions"
+    "basic" | "validation" | "data" | "advanced" | "actions" | "formulas"
   >("basic");
 
   const [activeDataSource, setActiveDataSource] = useState<any>(null);
@@ -1401,6 +1401,17 @@ export function PropertiesPanel({
           >
             Advanced
           </button>
+          
+          <button
+            className={`px-3 py-2 text-sm font-medium ${
+              activeTab === "formulas"
+                ? "text-primary border-b-2 border-primary"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("formulas")}
+          >
+            Formulas
+          </button>
         </div>
       </div>
 
@@ -1427,6 +1438,7 @@ export function PropertiesPanel({
             )}
 
             {activeTab === "advanced" && renderAdvancedProperties()}
+            {activeTab === "formulas" && renderFormulaProperties()}
           </form>
         </Form>
       </div>
