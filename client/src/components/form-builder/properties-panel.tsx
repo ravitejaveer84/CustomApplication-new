@@ -641,7 +641,7 @@ export function PropertiesPanel({
           <FormItem>
             <FormLabel>Width</FormLabel>
             <Select
-              value={field.value || ""}
+              value={field.value || "default"}
               onValueChange={(value) => {
                 field.onChange(value);
                 handleFormFieldChange("width", value);
@@ -651,7 +651,7 @@ export function PropertiesPanel({
                 <SelectValue placeholder="Select width" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Default</SelectItem>
+                <SelectItem value="default">Default</SelectItem>
                 <SelectItem value="full">Full width</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="small">Small</SelectItem>
@@ -671,7 +671,7 @@ export function PropertiesPanel({
           <FormItem>
             <FormLabel>Visibility</FormLabel>
             <Select
-              value={field.value || ""}
+              value={field.value || "always"}
               onValueChange={(value) => {
                 field.onChange(value);
                 handleFormFieldChange("visibility", value);
@@ -681,7 +681,7 @@ export function PropertiesPanel({
                 <SelectValue placeholder="Select visibility" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Always visible</SelectItem>
+                <SelectItem value="always">Always visible</SelectItem>
                 <SelectItem value="admin">Admin only</SelectItem>
                 <SelectItem value="dynamicCondition">
                   Based on conditions
@@ -1239,7 +1239,7 @@ export function PropertiesPanel({
                                 </SelectItem>
                               ))}
                               {activeSourceFields.length === 0 && (
-                                <SelectItem value="" disabled>
+                                <SelectItem value="no-fields" disabled>
                                   No fields available
                                 </SelectItem>
                               )}
