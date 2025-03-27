@@ -213,13 +213,18 @@ export function FormRenderer({
           let valueField = element.valueField || displayField;
           
           // Clear dropdownOptions if we're changing to static mode
-          if (element.optionsSource !== "dataSource" && dropdownOptions.length > 0) {
+          // Check both property formats
+          const isNotDataSourceMode = element.optionsSource !== "dataSource" && element.optionsSourceType !== "dataSource";
+          if (isNotDataSourceMode && dropdownOptions.length > 0) {
             setDropdownOptions([]);
           }
                     
           console.log("Fetching dropdown data from source ID:", dataSourceId);
           
-          if (dataSourceId && element.optionsSource === "dataSource") {
+          // Support both optionsSource and optionsSourceType properties
+          const isDataSourceMode = element.optionsSource === "dataSource" || element.optionsSourceType === "dataSource";
+          
+          if (dataSourceId && isDataSourceMode) {
             setIsLoadingOptions(true);
             
             const fetchDropdownData = async () => {
@@ -295,7 +300,7 @@ export function FormRenderer({
             
             fetchDropdownData();
           }
-        }, [element.dataSourceId, element.displayField, element.valueField, element.optionsSource]);
+        }, [element.dataSourceId, element.displayField, element.valueField, element.optionsSource, element.optionsSourceType]);
         
         // Logic for determining options to display:
         // 1. If in data source mode with options loaded, use data source options
@@ -303,7 +308,10 @@ export function FormRenderer({
         // 3. If static mode, use static options
         let displayOptions: {label: string, value: string}[] = [];
         
-        if (element.optionsSource === "dataSource") {
+        // Support both optionsSource and optionsSourceType properties
+        const isDataSourceMode = element.optionsSource === "dataSource" || element.optionsSourceType === "dataSource";
+        
+        if (isDataSourceMode) {
           // In data source mode
           if (dropdownOptions.length > 0) {
             // We have options from data source, use them

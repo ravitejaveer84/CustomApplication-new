@@ -76,8 +76,10 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
       }
     };
 
-    fetchData();
-  }, [element.dataSource?.id]);
+    if (dataSourceId) {
+      fetchData();
+    }
+  }, [element.dataSourceId, element.dataSource?.id]);
 
   // Define column type for better type safety
   type TableColumn = {

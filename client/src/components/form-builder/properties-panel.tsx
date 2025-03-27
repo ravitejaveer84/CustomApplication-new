@@ -873,7 +873,14 @@ export function PropertiesPanel({
                     onValueChange={(value) => {
                       const sourceId = parseInt(value, 10);
                       if (!isNaN(sourceId)) {
-                        const updatedElement = { ...localElement, dataSourceId: sourceId };
+                        const updatedElement = { 
+                          ...localElement, 
+                          dataSourceId: sourceId,
+                          dataSource: { 
+                            ...localElement.dataSource, 
+                            id: sourceId 
+                          }
+                        };
                         setLocalElement(updatedElement);
                         onElementUpdate(updatedElement);
                         
