@@ -143,9 +143,18 @@ export function DataTable({ element, formId, formData }: DataTableProps) {
           setData([]);
           setFilteredData([]);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error fetching data:", err);
-        setError("Failed to load data");
+        // Extract the specific error message if available
+        let errorMessage = "Failed to load data";
+        if (err.message) {
+          errorMessage = `Failed to load data: ${err.message}`;
+        } else if (typeof err.response?.data?.message === 'string') {
+          errorMessage = `Failed to load data: ${err.response.data.message}`;
+        } else if (typeof err === 'string') {
+          errorMessage = `Failed to load data: ${err}`;
+        }
+        setError(errorMessage);
         setData([]);
         setFilteredData([]);
       } finally {

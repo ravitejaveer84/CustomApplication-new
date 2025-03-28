@@ -400,8 +400,11 @@ export function FormRenderer({
                   setDropdownOptions(options);
                   console.log(`Loaded ${options.length} unique options for dropdown from ${fieldToUse}`);
                 }
-              } catch (err) {
+              } catch (err: any) {
                 console.error("Error fetching dropdown options:", err);
+                // Set an error state or display a toast notification
+                const errorMessage = err.response?.data?.message || err.message || "Failed to load dropdown options";
+                setDropdownOptions([{ value: "error", label: `Error: ${errorMessage}` }]);
               } finally {
                 setIsLoadingOptions(false);
               }

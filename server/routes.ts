@@ -854,7 +854,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } catch (error) {
             const dbError = error as Error;
             console.error('Error querying database:', dbError);
-            return res.status(500).json({ message: `Error querying database data source: ${dbError.message || 'Unknown error'}` });
+            
+            // Extract and format the specific error message for the client
+            let errorMessage = 'Unknown database error';
+            
+            if (dbError.message) {
+              if (dbError.message.includes('denied') || dbError.message.includes('permission')) {
+                errorMessage = 'Database access permission denied. Please check the credentials and permissions.';
+              } else if (dbError.message.includes('table') && dbError.message.includes('not exist')) {
+                errorMessage = 'The requested table does not exist in the database.';
+              } else if (dbError.message.includes('connect')) {
+                errorMessage = 'Could not connect to the database. Please check the connection settings.';
+              } else {
+                errorMessage = dbError.message;
+              }
+            }
+            
+            // Include more detailed technical error for debugging in development
+            const detailedError = process.env.NODE_ENV === 'development' 
+              ? { details: dbError.toString(), stack: dbError.stack } 
+              : undefined;
+            
+            return res.status(500).json({ 
+              message: `Database error: ${errorMessage}`,
+              technicalDetails: detailedError
+            });
           }
         } else if (dataSource.type === 'sharepoint') {
           // For SharePoint lists, this would need actual SharePoint API integration
