@@ -27,6 +27,7 @@ export function Sidebar({ isOpen }: SidebarProps) {
   const [location] = useLocation();
   const [expandedAppId, setExpandedAppId] = useState<number | null>(null);
   const [hoveredAppId, setHoveredAppId] = useState<number | null>(null);
+  const [hoverMenuOpen, setHoverMenuOpen] = useState<boolean>(false);
   const { isAdmin, user } = useAuth();
   
   // Fetch applications with a short refetch interval to keep sidebar in sync
@@ -37,6 +38,22 @@ export function Sidebar({ isOpen }: SidebarProps) {
     staleTime: 2000, // Data is considered fresh for 2 seconds
     refetchInterval: 5000, // Refetch every 5 seconds
   });
+  
+  // Handle hover on app items
+  const handleAppHover = (appId: number) => {
+    setHoveredAppId(appId);
+    setHoverMenuOpen(true);
+  };
+  
+  // Handle mouse leave
+  const handleAppLeave = () => {
+    // Small delay to check if we're moving to the hover menu
+    setTimeout(() => {
+      if (!hoverMenuOpen) {
+        setHoveredAppId(null);
+      }
+    }, 100);
+  };
   
   // Get the currently active app ID (either hovered or clicked)
   const activeAppId = hoveredAppId || expandedAppId;
@@ -141,8 +158,8 @@ export function Sidebar({ isOpen }: SidebarProps) {
                 <div 
                   key={app.id} 
                   className="flex flex-col relative"
-                  onMouseEnter={() => setHoveredAppId(app.id)}
-                  onMouseLeave={() => setHoveredAppId(null)}
+                  onMouseEnter={() => handleAppHover(app.id)}
+                  onMouseLeave={handleAppLeave}
                 >
                   {/* Application header - clickable to expand */}
                   <div
@@ -228,7 +245,18 @@ export function Sidebar({ isOpen }: SidebarProps) {
                   
                   {/* Hover dropdown for forms - shows when hovering over application */}
                   {hoveredAppId === app.id && expandedAppId !== app.id && (
-                    <div className="absolute left-full top-0 w-48 bg-white shadow-lg rounded-md p-2 ml-2 z-50">
+                    <div 
+                      className="absolute left-full top-0 w-48 bg-white shadow-lg rounded-md p-2 ml-2 z-50 before:content-[''] before:absolute before:top-3 before:-left-2 before:border-8 before:border-transparent before:border-r-white"
+                      onMouseEnter={() => {
+                        setHoveredAppId(app.id);
+                        setHoverMenuOpen(true);
+                      }}
+                      onMouseLeave={() => {
+                        setHoverMenuOpen(false);
+                        setHoveredAppId(null);
+                      }}
+                    >
+                      <div className="font-medium text-gray-700 border-b pb-1 mb-2">{app.name} Forms</div>
                       {isLoadingForms ? (
                         <div className="flex items-center justify-center p-2">
                           <Loader2 className="h-3 w-3 animate-spin text-primary" />
