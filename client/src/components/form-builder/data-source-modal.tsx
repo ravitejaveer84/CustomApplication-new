@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Form } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { useToast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -48,13 +48,30 @@ interface DataSourceModalProps {
 }
 
 export function DataSourceModal({ isOpen, onClose, formId, existingDataSource }: DataSourceModalProps) {
+  // Add a view state to switch between list and edit/create views
+  const [view, setView] = useState<"list" | "create" | "edit">("list");
   const [activeTab, setActiveTab] = useState("connection");
   const [isConnectionTested, setIsConnectionTested] = useState(false);
   const [fields, setFields] = useState<DataField[]>([]);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [availableTables, setAvailableTables] = useState<string[]>([]);
+  const [selectedDataSource, setSelectedDataSource] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch data sources for this form
+  const { data: dataSources = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/datasources", formId],
+    queryFn: async () => {
+      const url = formId ? `/api/datasources?formId=${formId}` : '/api/datasources';
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch data sources');
+      }
+      return response.json();
+    },
+    enabled: isOpen && view === "list",
+  });
 
   const form = useForm<DataSourceFormValues>({
     defaultValues: {
@@ -431,8 +448,8 @@ export function DataSourceModal({ isOpen, onClose, formId, existingDataSource }:
         return;
       }
 
-      // Validate connection was tested
-      if (!isConnectionTested) {
+      // If editing, we may skip connection testing
+      if (!isConnectionTested && view !== "edit") {
         toast({
           title: "Error",
           description: "Please test the connection before saving",
@@ -594,32 +611,177 @@ export function DataSourceModal({ isOpen, onClose, formId, existingDataSource }:
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Configure Data Source</DialogTitle>
+          <DialogTitle>
+            {view === "list" ? "Data Sources" : view === "create" ? "Create Data Source" : "Edit Data Source"}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="py-4">
-          <div className="flex space-x-4 border-b border-gray-200 mb-6">
-            <button
-              className={`px-4 py-2 ${activeTab === "connection" ? "text-primary border-b-2 border-primary font-medium" : "text-gray-500 hover:text-gray-700"}`}
-              onClick={() => setActiveTab("connection")}
-            >
-              Connection
-            </button>
-            <button
-              className={`px-4 py-2 ${activeTab === "fields" ? "text-primary border-b-2 border-primary font-medium" : "text-gray-500 hover:text-gray-700"}`}
-              onClick={() => setActiveTab("fields")}
-              disabled={!isConnectionTested}
-            >
-              Fields Mapping
-            </button>
-            <button
-              className={`px-4 py-2 ${activeTab === "preview" ? "text-primary border-b-2 border-primary font-medium" : "text-gray-500 hover:text-gray-700"}`}
-              onClick={() => setActiveTab("preview")}
-              disabled={!isConnectionTested}
-            >
-              Preview Data
-            </button>
+        {/* List View */}
+        {view === "list" && (
+          <div className="py-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Available Data Sources</h3>
+              <button
+                className="px-4 py-2 bg-primary text-white rounded-md flex items-center"
+                onClick={() => {
+                  setView("create");
+                  form.reset({
+                    type: "database",
+                    dbType: "postgresql",
+                    useDefaultDatabase: false
+                  });
+                  setIsConnectionTested(false);
+                  setFields([]);
+                  setPreviewData([]);
+                }}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Data Source
+              </button>
+            </div>
+
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : dataSources.length === 0 ? (
+              <div className="text-center py-8 bg-gray-50 rounded-lg">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <p className="mt-2 text-sm text-gray-500">No data sources found for this form</p>
+                <p className="text-sm text-gray-500">Click "Add Data Source" to create one</p>
+              </div>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {dataSources.map((dataSource: any) => (
+                      <tr key={dataSource.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{dataSource.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {dataSource.type.charAt(0).toUpperCase() + dataSource.type.slice(1)}
+                          {dataSource.config && dataSource.config.dbType && ` (${dataSource.config.dbType})`}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                          <button
+                            className="text-primary hover:text-primary-dark mr-4"
+                            onClick={() => {
+                              setSelectedDataSource(dataSource);
+                              // Populate form with existing values
+                              const config = dataSource.config || {};
+                              form.reset({
+                                name: dataSource.name,
+                                type: dataSource.type,
+                                dbType: config.dbType,
+                                server: config.server || config.host,
+                                port: config.port,
+                                database: config.database,
+                                schema: config.schema,
+                                table: config.table,
+                                username: config.username || config.user,
+                                password: config.password,
+                                connectionString: config.connectionString || config.uri || config.connectString,
+                                sharePointUrl: config.url,
+                                listName: config.listName,
+                                fileUrl: config.fileUrl,
+                                collection: config.collection,
+                                service: config.service,
+                                filename: config.filename,
+                                useDefaultDatabase: config.useDefaultDatabase || false
+                              });
+                              setView("edit");
+                              setIsConnectionTested(true); // Assume connection is valid for existing source
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="text-red-600 hover:text-red-900"
+                            onClick={async () => {
+                              if (confirm(`Are you sure you want to delete the data source "${dataSource.name}"?`)) {
+                                try {
+                                  const response = await fetch(`/api/datasources/${dataSource.id}`, {
+                                    method: 'DELETE'
+                                  });
+                                  
+                                  if (response.ok) {
+                                    queryClient.invalidateQueries({ queryKey: ["/api/datasources"] });
+                                    toast({
+                                      title: "Success",
+                                      description: "Data source deleted successfully"
+                                    });
+                                  } else {
+                                    throw new Error("Failed to delete data source");
+                                  }
+                                } catch (error) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to delete data source",
+                                    variant: "destructive"
+                                  });
+                                }
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
+        )}
+
+        {/* Create/Edit View */}
+        {(view === "create" || view === "edit") && (
+          <div className="py-4">
+            <div className="mb-4 flex justify-between">
+              <button
+                className="px-3 py-1 text-gray-600 hover:text-gray-800 flex items-center"
+                onClick={() => setView("list")}
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to List
+              </button>
+            </div>
+          
+            <div className="flex space-x-4 border-b border-gray-200 mb-6">
+              <button
+                className={`px-4 py-2 ${activeTab === "connection" ? "text-primary border-b-2 border-primary font-medium" : "text-gray-500 hover:text-gray-700"}`}
+                onClick={() => setActiveTab("connection")}
+              >
+                Connection
+              </button>
+              <button
+                className={`px-4 py-2 ${activeTab === "fields" ? "text-primary border-b-2 border-primary font-medium" : "text-gray-500 hover:text-gray-700"}`}
+                onClick={() => setActiveTab("fields")}
+                disabled={!isConnectionTested}
+              >
+                Fields Mapping
+              </button>
+              <button
+                className={`px-4 py-2 ${activeTab === "preview" ? "text-primary border-b-2 border-primary font-medium" : "text-gray-500 hover:text-gray-700"}`}
+                onClick={() => setActiveTab("preview")}
+                disabled={!isConnectionTested}
+              >
+                Preview Data
+              </button>
+            </div>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSave)}>
@@ -1084,6 +1246,7 @@ export function DataSourceModal({ isOpen, onClose, formId, existingDataSource }:
             </form>
           </Form>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
