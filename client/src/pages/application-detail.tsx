@@ -132,17 +132,20 @@ export default function ApplicationDetail() {
           <p className="text-red-500">Error loading forms: {formsError instanceof Error ? formsError.message : 'Unknown error'}</p>
         </div>
       ) : forms.length === 0 ? (
-        <Card className="bg-gray-50 border-dashed border-2">
-          <CardContent className="p-8 text-center">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <CardTitle className="mb-2">No Forms Created</CardTitle>
-            <CardDescription className="mb-4">
-              Create your first form to get started with {application.name}
+        <Card className="bg-gray-50 border-dashed border-2 border-primary/30">
+          <CardContent className="py-16 px-8 text-center">
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <FileText className="h-10 w-10 text-primary" />
+            </div>
+            <CardTitle className="text-xl mb-3">No Forms Created Yet</CardTitle>
+            <CardDescription className="text-base mb-6 max-w-md mx-auto">
+              Start building your first form for <span className="font-semibold">{application.name}</span>. 
+              Forms allow you to collect and process information from your users.
             </CardDescription>
             <Link href={`/applications/${applicationId}/new-form`}>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create Form
+              <Button className="bg-primary hover:bg-primary/90 transition-colors px-6 py-5 h-auto">
+                <PlusCircle className="mr-2 h-5 w-5" />
+                Create Your First Form
               </Button>
             </Link>
           </CardContent>
@@ -150,37 +153,56 @@ export default function ApplicationDetail() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {forms.map((form) => (
-            <Card key={form.id} className="hover:shadow-md transition-shadow">
+            <Card 
+              key={form.id} 
+              className={cn(
+                "hover:shadow-md transition-shadow border-t-4 overflow-hidden group",
+                form.isPublished 
+                  ? "border-t-green-500" 
+                  : "border-t-amber-500"
+              )}
+            >
               <CardHeader className="pb-3">
-                <CardTitle>{form.name}</CardTitle>
-                <CardDescription>
-                  {form.description || 'No description provided'}
-                </CardDescription>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg font-bold">{form.name}</CardTitle>
+                    <CardDescription className="mt-1 line-clamp-2">
+                      {form.description || 'No description provided'}
+                    </CardDescription>
+                  </div>
+                  
+                  <div className={cn(
+                    "text-xs font-medium px-2.5 py-0.5 rounded-full w-fit",
+                    form.isPublished 
+                      ? "bg-green-100 text-green-800" 
+                      : "bg-amber-100 text-amber-800"
+                  )}>
+                    {form.isPublished ? 'Published' : 'Draft'}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className={cn(
-                  "mb-4 text-xs font-medium px-2.5 py-0.5 rounded-full w-fit",
-                  form.isPublished 
-                    ? "bg-green-100 text-green-800" 
-                    : "bg-amber-100 text-amber-800"
-                )}>
-                  {form.isPublished ? 'Published' : 'Draft'}
-                </div>
-                <div className="flex items-center justify-between mt-4">
-                  <div className="flex space-x-2">
-                    <Link href={`/form-builder/${form.id}`}>
-                      <Button size="sm" variant="outline">
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Edit
-                      </Button>
-                    </Link>
-                    <Link href={`/form/${form.id}`}>
-                      <Button size="sm" variant="outline">
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                    </Link>
-                  </div>
+                <div className="flex items-center justify-between gap-2">
+                  <Link href={`/form-builder/${form.id}`} className="flex-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full transition-colors group-hover:border-primary group-hover:text-primary"
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  </Link>
+                  <Link href={`/form/${form.id}`} className="flex-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full transition-colors group-hover:border-primary group-hover:text-primary"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </Button>
+                  </Link>
                   <Button 
                     size="sm" 
                     variant="ghost" 
@@ -194,9 +216,11 @@ export default function ApplicationDetail() {
             </Card>
           ))}
           <Link href={`/applications/${applicationId}/new-form`}>
-            <Card className="border-dashed border-2 hover:bg-gray-50 cursor-pointer h-full flex flex-col items-center justify-center">
+            <Card className="border-dashed border-2 hover:bg-gray-50 cursor-pointer h-full flex flex-col items-center justify-center transition-colors hover:border-primary">
               <CardContent className="p-6 text-center">
-                <PlusCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10">
+                  <PlusCircle className="h-8 w-8 text-gray-400" />
+                </div>
                 <CardTitle className="text-gray-500">Create New Form</CardTitle>
               </CardContent>
             </Card>

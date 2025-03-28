@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import FormBuilder from "@/pages/form-builder";
 import FormsList from "@/pages/forms-list";
+import ApplicationsList from "@/pages/applications-list";
 import DataSources from "@/pages/data-sources";
 import { Sidebar } from "@/components/sidebar";
 import { AppHeader } from "@/components/app-header";
@@ -28,6 +29,15 @@ function Router() {
       
       {/* Protected routes - general users */}
       <Route path="/">
+        {(params) => (
+          <RequireAuth>
+            <ApplicationsList />
+          </RequireAuth>
+        )}
+      </Route>
+      
+      {/* Forms list route */}
+      <Route path="/forms">
         {(params) => (
           <RequireAuth>
             <FormsList />
