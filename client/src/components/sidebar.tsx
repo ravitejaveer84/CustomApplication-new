@@ -108,19 +108,8 @@ export function Sidebar({ isOpen }: SidebarProps) {
             </div>
           ) : (
             <div className="space-y-1">
-              {/* Show applications where the user is admin or the application is created for the user */}
-              {applications?.filter(app => {
-                  // Admin sees all apps
-                  if (isAdmin) return true;
-                  
-                  // For backward compatibility, if createdBy is null/undefined and user is authenticated, show the app
-                  if (app.createdBy === null || app.createdBy === undefined) {
-                    return true;
-                  }
-                  
-                  // Users only see apps created for them
-                  return app.createdBy === user?.id;
-                })
+              {/* Show all applications to all authenticated users */}
+              {applications
                 .map((app: Application) => (
                 <div 
                   key={app.id}
@@ -163,15 +152,20 @@ export function Sidebar({ isOpen }: SidebarProps) {
                         </div>
                       ) : applicationForms && applicationForms.length > 0 ? (
                         <div className="space-y-1">
-                          {applicationForms.map((form: Form) => (
-                            <Link
-                              key={form.id}
-                              href={`/form/${form.id}`}
-                              className="block p-2 text-sm hover:bg-gray-100 rounded"
-                            >
-                              {form.name}
-                            </Link>
-                          ))}
+                          {applicationForms
+                            .filter(form => isAdmin || form.isPublished)
+                            .map((form: Form) => (
+                              <Link
+                                key={form.id}
+                                href={`/form/${form.id}`}
+                                className="block p-2 text-sm hover:bg-gray-100 rounded"
+                              >
+                                {form.name}
+                                {!form.isPublished && isAdmin && 
+                                  <span className="ml-2 text-xs text-gray-400">(Draft)</span>
+                                }
+                              </Link>
+                            ))}
                           
                           {isAdmin && (
                             <div className="border-t border-gray-200 pt-2 mt-2">

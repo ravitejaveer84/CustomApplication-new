@@ -167,7 +167,9 @@ export default function ApplicationDetail() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {forms.map((form) => (
+          {forms
+            .filter(form => isAdmin || form.isPublished)
+            .map((form) => (
             <Card 
               key={form.id} 
               className={cn(
