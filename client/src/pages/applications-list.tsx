@@ -53,6 +53,7 @@ export default function ApplicationsList() {
       });
     },
     onSuccess: () => {
+      // Invalidate both the applications list and any related queries
       queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
       toast({
         title: "Application deleted",

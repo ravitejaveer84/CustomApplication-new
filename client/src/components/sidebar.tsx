@@ -19,10 +19,13 @@ export function Sidebar({ isOpen }: SidebarProps) {
   const [hoveredAppId, setHoveredAppId] = useState<number | null>(null);
   const { isAdmin, user } = useAuth();
   
-  // Fetch applications
+  // Fetch applications with a short refetch interval to keep sidebar in sync
   const { data: applications = [], isLoading: isLoadingApps } = useQuery<Application[]>({
     queryKey: ['/api/applications'],
     enabled: true,
+    refetchOnWindowFocus: true,
+    staleTime: 2000, // Data is considered fresh for 2 seconds
+    refetchInterval: 5000, // Refetch every 5 seconds
   });
   
   // Fetch forms for hovered application

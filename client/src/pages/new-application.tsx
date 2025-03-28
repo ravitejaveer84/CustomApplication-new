@@ -29,7 +29,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -87,6 +87,9 @@ export default function NewApplication() {
         method: "POST",
         data: applicationData
       });
+      
+      // Invalidate the applications query to update the sidebar
+      queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
       
       toast({
         title: "Application created",
