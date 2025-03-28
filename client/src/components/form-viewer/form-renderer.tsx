@@ -643,23 +643,30 @@ export function FormRenderer({
                 ))}
               </TabsList>
               
-              {element.tabs.map((tab: { id: string; label: string }) => (
-                <TabsContent key={tab.id} value={tab.id} className="pt-4 space-y-4">
-                  {element.elements?.filter((child: FormElement) => child.tabId === tab.id).map((childElement: FormElement) => (
-                    <div key={childElement.id} className="mb-4">
-                      {renderFormElement(childElement)}
-                    </div>
-                  ))}
-                  
-                  {(!element.elements?.some((child: FormElement) => child.tabId === tab.id)) && (
-                    <div className="text-center py-4 border border-dashed rounded-md border-gray-300">
-                      <p className="text-sm text-muted-foreground">
-                        No elements in this tab. Drag and drop form elements here.
-                      </p>
-                    </div>
-                  )}
-                </TabsContent>
-              ))}
+              {element.tabs.map((tab: { id: string; label: string }) => {
+                // Find all form elements that belong to this tab
+                const tabElements = formElements.filter((el: FormElement) => 
+                  el.tabId === tab.id && el.id !== element.id
+                );
+                
+                return (
+                  <TabsContent key={tab.id} value={tab.id} className="pt-4 space-y-4">
+                    {tabElements.length > 0 ? (
+                      tabElements.map((childElement: FormElement) => (
+                        <div key={childElement.id} className="mb-4">
+                          {renderFormElement(childElement)}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 border border-dashed rounded-md border-gray-300">
+                        <p className="text-sm text-muted-foreground">
+                          No elements in this tab.
+                        </p>
+                      </div>
+                    )}
+                  </TabsContent>
+                );
+              })}
             </Tabs>
           </div>
         );

@@ -412,23 +412,46 @@ export function FormCanvas({
         return (
           <div 
             className={`mb-8 p-4 border border-gray-200 rounded-lg bg-gray-50 relative ${isSelected ? 'ring-2 ring-primary' : ''}`} 
-            onClick={() => onElementSelect(element)}
           >
             <div className="absolute top-2 right-2 flex space-x-1 z-10">
               <Button variant="ghost" size="icon" className="h-5 w-5">
                 <MoveVertical className="h-3 w-3 text-gray-500" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-5 w-5">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-5 w-5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onElementSelect(element);
+                }}
+              >
                 <Cog className="h-3 w-3 text-gray-500" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteElement(element.id);
-              }}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-5 w-5" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteElement(element.id);
+                }}
+              >
                 <Trash className="h-3 w-3 text-red-500" />
               </Button>
             </div>
-            <h3 className="text-lg font-semibold mb-4">{element.label || "Tabs"}</h3>
+            
+            {/* This is the outer clickable container for the tabs element */}
+            <div 
+              className="py-2 mb-2 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onElementSelect(element);
+              }}
+            >
+              <h3 className="text-lg font-semibold">{element.label || "Tabs"}</h3>
+              {element.helpText && <p className="text-sm text-gray-500">{element.helpText}</p>}
+            </div>
             
             {element.tabs && element.tabs.length > 0 ? (
               <Tabs defaultValue={element.tabs[0]?.id} className="w-full">
@@ -442,65 +465,58 @@ export function FormCanvas({
                 
                 {element.tabs.map((tab: { id: string; label: string }) => {
                   // Filter child elements that belong to this tab
-                  // Get child elements for this tab from the element's elements array
-                  const tabElements = element.elements?.filter((el) => el.tabId === tab.id) || [];
+                  const tabElements = formElements.filter(el => 
+                    el.tabId === tab.id && el.id !== element.id
+                  );
                   
                   return (
                     <TabsContent key={tab.id} value={tab.id} className="pt-2">
-                      {tabElements.length > 0 ? (
-                        <div className="space-y-4">
-                          {tabElements.map(childElement => (
-                            <div key={childElement.id} className="p-2">
-                              {renderFormElement(childElement)}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div 
-                          className="border-2 border-dashed border-gray-300 rounded-lg p-8 flex items-center justify-center"
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.add('bg-gray-100');
-                          }}
-                          onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('bg-gray-100');
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('bg-gray-100');
-                            
-                            const elementType = e.dataTransfer.getData("text/plain");
-                            if (!elementType) return;
-                            
-                            // Create a new element based on the type
-                            const newElement = getDefaultElement(elementType);
-                            
-                            // Associate this element with the current tab
-                            newElement.tabId = tab.id;
-                            
-                            // Add to the tab element's elements array
-                            const updatedElement = {
-                              ...element,
-                              elements: [...(element.elements || []), newElement]
-                            };
-                            
-                            // Update the form elements array
-                            const updatedElements = formElements.map(el => 
-                              el.id === element.id ? updatedElement : el
-                            );
-                            
-                            // Select the new element for editing its properties
-                            setTimeout(() => onElementSelect(newElement), 0);
-                            
-                            onElementsChange(updatedElements);
-                          }}
-                        >
-                          <div className="text-center text-gray-500">
+                      <div 
+                        className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-[150px]"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.add('bg-gray-100');
+                        }}
+                        onDragLeave={(e) => {
+                          e.currentTarget.classList.remove('bg-gray-100');
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.remove('bg-gray-100');
+                          
+                          const elementType = e.dataTransfer.getData("text/plain");
+                          if (!elementType) return;
+                          
+                          // Create a new element based on the type with tabId
+                          const newElement = {
+                            ...getDefaultElement(elementType),
+                            tabId: tab.id
+                          };
+                          
+                          // Add the new element directly to the formElements array
+                          const updatedElements = [...formElements, newElement];
+                          
+                          // Select the new element for editing
+                          setTimeout(() => onElementSelect(newElement), 0);
+                          
+                          onElementsChange(updatedElements);
+                        }}
+                      >
+                        {tabElements.length > 0 ? (
+                          <div className="space-y-4">
+                            {tabElements.map(tabElement => (
+                              <div key={tabElement.id} className="p-2">
+                                {renderFormElement(tabElement)}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center text-gray-500 flex flex-col items-center justify-center h-full">
                             <Plus className="h-6 w-6 mx-auto mb-2" />
                             <p>Drag elements here</p>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </TabsContent>
                   );
                 })}
