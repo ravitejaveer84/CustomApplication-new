@@ -704,34 +704,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(400).json({ message: 'No file URL provided in Excel data source config' });
           }
         } else if (dataSource.type === 'database') {
-          // For database connections, query the database
-          const { server, port, database, username, password, schema, table, query } = config;
+          // For database connections, query the database using our DatabaseConnector
+          const { dbType = 'postgresql', schema, table, query, collection } = config;
           
-          // Use default database connection if configuration is missing
-          const pool = new pg.Pool({
-            host: server || process.env.PGHOST,
-            port: parseInt(port || process.env.PGPORT || '5432'),
-            database: database || process.env.PGDATABASE,
-            user: username || process.env.PGUSER,
-            password: password || process.env.PGPASSWORD,
-            connectionTimeoutMillis: 5000,
-          });
+          // Import the DatabaseConnector
+          const { DatabaseConnector } = require('./database/connector');
           
           try {
-            const client = await pool.connect();
+            // If using the default database (from environment), set up the appropriate config
+            if (config.useDefaultDatabase) {
+              // Use the environment database connection
+              if (dbType.toLowerCase() === 'postgresql') {
+                config.connectionString = process.env.DATABASE_URL;
+              }
+            }
             
-            // Execute the configured query or a basic select
-            const sqlQuery = query || `SELECT * FROM ${schema || 'public'}.${table || 'users'} LIMIT 1000`;
+            // Construct the query based on database type
+            let sqlQuery = query;
             
-            const result = await client.query(sqlQuery);
+            if (!sqlQuery) {
+              if (dbType.toLowerCase() === 'mongodb') {
+                // For MongoDB, use an empty query object that will return all documents
+                sqlQuery = '{}';
+              } else {
+                // For SQL databases, construct a basic SELECT
+                sqlQuery = `SELECT * FROM ${schema || 'public'}.${table || 'users'} LIMIT 1000`;
+              }
+            }
+            
+            // Execute the query
+            const result = await DatabaseConnector.executeQuery(dbType, config, sqlQuery);
+            
+            if (result.error) {
+              throw result.error;
+            }
+            
             sourceData = result.rows;
-            
-            client.release();
           } catch (dbError) {
             console.error('Error querying database:', dbError);
-            return res.status(500).json({ message: 'Error querying database data source' });
-          } finally {
-            await pool.end();
+            return res.status(500).json({ message: `Error querying database data source: ${dbError.message || 'Unknown error'}` });
           }
         } else if (dataSource.type === 'sharepoint') {
           // For SharePoint lists, this would need actual SharePoint API integration
@@ -847,66 +858,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { type, config } = req.body;
       
       if (type === 'database') {
-        // Handle PostgreSQL connection test
-        const {
-          server = process.env.PGHOST,
-          port = process.env.PGPORT,
-          database = process.env.PGDATABASE,
-          username = process.env.PGUSER,
-          password = process.env.PGPASSWORD
-        } = config || {};
+        const { dbType = 'postgresql' } = config;
         
-        const pool = new pg.Pool({
-          host: server,
-          port: parseInt(port || '5432'),
-          database,
-          user: username,
-          password,
-          // Set a connection timeout
-          connectionTimeoutMillis: 5000,
-        });
+        // Import the DatabaseConnector
+        const { DatabaseConnector } = require('./database/connector');
         
+        // Test connection using our database connector
         try {
-          // Test connection by querying PostgreSQL version
-          const client = await pool.connect();
-          const result = await client.query('SELECT version()');
-          client.release();
-          
-          // Return success with database info
-          // Get sample metadata about tables in the database
-          const tableQuery = await client.query(`
-            SELECT table_name, column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_schema = 'public' 
-            ORDER BY table_name, ordinal_position 
-            LIMIT 50
-          `);
-          
-          // Group columns by table to create field metadata
-          const fieldsByTable = tableQuery.rows.reduce((acc: any, row: any) => {
-            const { table_name, column_name, data_type } = row;
-            if (!acc[table_name]) {
-              acc[table_name] = [];
+          // If using the default database (from environment), set up the appropriate config
+          if (config.useDefaultDatabase) {
+            // Use the environment database connection
+            if (dbType.toLowerCase() === 'postgresql') {
+              config.connectionString = process.env.DATABASE_URL;
             }
-            acc[table_name].push({
-              name: column_name,
-              type: data_type,
-              selected: ["id", "name", "title", "email", "description"].includes(column_name.toLowerCase())
-            });
-            return acc;
-          }, {});
+          }
           
-          res.json({
-            success: true,
-            message: 'Database connection successful',
-            info: {
-              server,
-              database,
-              version: result.rows[0].version
-            },
-            tables: Object.keys(fieldsByTable),
-            fields: fieldsByTable
-          });
+          // Test the connection to the database
+          const result = await DatabaseConnector.testConnection(dbType, config);
+          
+          if (result.success) {
+            res.json(result);
+          } else {
+            res.status(400).json(result);
+          }
         } catch (error) {
           const dbError = error as Error;
           console.error('Database connection error:', dbError);
@@ -914,8 +888,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             success: false,
             message: `Database connection failed: ${dbError.message}`
           });
-        } finally {
-          await pool.end();
         }
       } else if (type === 'sharepoint') {
         // Simulate SharePoint connection test

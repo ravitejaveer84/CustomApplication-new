@@ -11,15 +11,25 @@ import { Label } from '@/components/ui/label';
 type DataSourceFormValues = {
   name: string;
   type: "database" | "sharepoint" | "excel";
+  dbType?: "postgresql" | "mysql" | "mongodb" | "mssql" | "oracle" | "sqlite";
   server?: string;
   port?: string;
   database?: string;
   schema?: string;
   username?: string;
   password?: string;
+  connectionString?: string;
   sharePointUrl?: string;
   listName?: string;
   fileUrl?: string;
+  // MongoDB specific
+  collection?: string; 
+  // Oracle specific
+  service?: string;
+  // SQLite specific
+  filename?: string;
+  // Option for using default database connection from environment
+  useDefaultDatabase?: boolean;
 };
 
 type DataField = {
@@ -41,7 +51,13 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const form = useForm<DataSourceFormValues>();
+  const form = useForm<DataSourceFormValues>({
+    defaultValues: {
+      type: "database",
+      dbType: "postgresql",
+      useDefaultDatabase: false
+    }
+  });
   
   // State to store connection test response
   const [connectionTestResponse, setConnectionTestResponse] = useState<any>(null);
@@ -235,21 +251,75 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
       let config: any = {};
       
       if (data.type === 'database') {
-        if (!data.server || !data.database) {
-          toast({
-            title: "Error",
-            description: "Server and database name are required for database connections",
-            variant: "destructive"
-          });
-          return;
-        }
+        // Include database type in the config
         config = {
-          server: data.server,
-          port: data.port,
-          database: data.database,
-          username: data.username,
-          password: data.password
+          dbType: data.dbType || 'postgresql',
+          useDefaultDatabase: data.useDefaultDatabase
         };
+        
+        // Different validation logic based on database type
+        if (data.dbType === 'sqlite') {
+          if (!data.filename) {
+            toast({
+              title: "Error",
+              description: "Database filename is required for SQLite connections",
+              variant: "destructive"
+            });
+            return;
+          }
+          config.filename = data.filename;
+        } else if (data.dbType === 'mongodb') {
+          if (data.connectionString) {
+            config.uri = data.connectionString;
+          } else if (!data.server || !data.database) {
+            toast({
+              title: "Error",
+              description: "Server and database name are required for MongoDB connections",
+              variant: "destructive"
+            });
+            return;
+          } else {
+            config.host = data.server;
+            config.port = data.port;
+            config.database = data.database;
+            config.username = data.username;
+            config.password = data.password;
+            config.collection = data.collection;
+          }
+        } else if (data.dbType === 'oracle') {
+          if (data.connectionString) {
+            config.connectString = data.connectionString;
+          } else if (!data.server || !data.service) {
+            toast({
+              title: "Error",
+              description: "Server and service name are required for Oracle connections",
+              variant: "destructive"
+            });
+            return;
+          } else {
+            config.host = data.server;
+            config.port = data.port;
+            config.service = data.service;
+            config.user = data.username;
+            config.password = data.password;
+          }
+        } else {
+          // PostgreSQL, MySQL, SQL Server all use similar connection parameters
+          if (!data.server || !data.database) {
+            toast({
+              title: "Error",
+              description: `Server and database name are required for ${data.dbType} connections`,
+              variant: "destructive"
+            });
+            return;
+          }
+          config.server = data.server;
+          config.port = data.port;
+          config.database = data.database;
+          config.schema = data.schema;
+          config.user = data.username;
+          config.password = data.password;
+        }
       } else if (data.type === 'sharepoint') {
         if (!data.sharePointUrl || !data.listName) {
           toast({
@@ -364,21 +434,75 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
       let config: any = {};
       
       if (data.type === 'database') {
-        if (!data.server || !data.database) {
-          toast({
-            title: "Error",
-            description: "Server and database name are required for database connections",
-            variant: "destructive"
-          });
-          return;
-        }
+        // Include database type in the config
         config = {
-          server: data.server,
-          port: data.port,
-          database: data.database,
-          username: data.username,
-          password: data.password
+          dbType: data.dbType || 'postgresql',
+          useDefaultDatabase: data.useDefaultDatabase
         };
+        
+        // Different validation logic based on database type
+        if (data.dbType === 'sqlite') {
+          if (!data.filename) {
+            toast({
+              title: "Error",
+              description: "Database filename is required for SQLite connections",
+              variant: "destructive"
+            });
+            return;
+          }
+          config.filename = data.filename;
+        } else if (data.dbType === 'mongodb') {
+          if (data.connectionString) {
+            config.uri = data.connectionString;
+          } else if (!data.server || !data.database) {
+            toast({
+              title: "Error",
+              description: "Server and database name are required for MongoDB connections",
+              variant: "destructive"
+            });
+            return;
+          } else {
+            config.host = data.server;
+            config.port = data.port;
+            config.database = data.database;
+            config.username = data.username;
+            config.password = data.password;
+            config.collection = data.collection;
+          }
+        } else if (data.dbType === 'oracle') {
+          if (data.connectionString) {
+            config.connectString = data.connectionString;
+          } else if (!data.server || !data.service) {
+            toast({
+              title: "Error",
+              description: "Server and service name are required for Oracle connections",
+              variant: "destructive"
+            });
+            return;
+          } else {
+            config.host = data.server;
+            config.port = data.port;
+            config.service = data.service;
+            config.user = data.username;
+            config.password = data.password;
+          }
+        } else {
+          // PostgreSQL, MySQL, SQL Server all use similar connection parameters
+          if (!data.server || !data.database) {
+            toast({
+              title: "Error",
+              description: `Server and database name are required for ${data.dbType} connections`,
+              variant: "destructive"
+            });
+            return;
+          }
+          config.server = data.server;
+          config.port = data.port;
+          config.database = data.database;
+          config.schema = data.schema;
+          config.user = data.username;
+          config.password = data.password;
+        }
       } else if (data.type === 'sharepoint') {
         if (!data.sharePointUrl || !data.listName) {
           toast({
@@ -505,59 +629,246 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
                   </div>
 
                   {form.watch("type") === "database" && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Server</label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="localhost"
-                          {...form.register("server")}
-                        />
+                    <>
+                      <div className="p-4 mb-4 border rounded-md bg-blue-50">
+                        <p className="text-sm text-blue-600">
+                          Select the type of database you want to connect to.
+                        </p>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Port</label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="5432"
-                          {...form.register("port")}
-                        />
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2 col-span-2">
+                          <label className="text-sm font-medium">Database Type</label>
+                          <select
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                            {...form.register("dbType")}
+                            defaultValue="postgresql"
+                          >
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="mongodb">MongoDB</option>
+                            <option value="mssql">Microsoft SQL Server</option>
+                            <option value="oracle">Oracle</option>
+                            <option value="sqlite">SQLite</option>
+                          </select>
+                        </div>
+                        
+                        <div className="space-y-2 col-span-2">
+                          <label className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="useDefaultDatabase"
+                              checked={form.getValues("useDefaultDatabase")}
+                              onCheckedChange={(checked) => {
+                                const useDefault = checked === true;
+                                form.setValue("useDefaultDatabase", useDefault);
+                                if (useDefault) {
+                                  form.setValue("server", "localhost");
+                                  form.setValue("port", form.watch("dbType") === "postgresql" ? "5432" : 
+                                    form.watch("dbType") === "mysql" ? "3306" : 
+                                    form.watch("dbType") === "mongodb" ? "27017" : 
+                                    form.watch("dbType") === "mssql" ? "1433" : 
+                                    form.watch("dbType") === "oracle" ? "1521" : "");
+                                }
+                              }}
+                            />
+                            <span className="text-sm text-gray-700">Use default environment database</span>
+                          </label>
+                          <p className="text-xs text-gray-500">
+                            If checked, the application will use the database connection from environment variables
+                          </p>
+                        </div>
+                        
+                        {form.watch("dbType") === "postgresql" || form.watch("dbType") === "mysql" || form.watch("dbType") === "mssql" ? (
+                          <>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Server/Host</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                placeholder="localhost"
+                                {...form.register("server")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Port</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                placeholder={form.watch("dbType") === "postgresql" ? "5432" : 
+                                  form.watch("dbType") === "mysql" ? "3306" : "1433"}
+                                {...form.register("port")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Database Name</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                {...form.register("database")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Schema</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                placeholder="public"
+                                {...form.register("schema")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Username</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                {...form.register("username")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Password</label>
+                              <input
+                                type="password"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                {...form.register("password")}
+                              />
+                            </div>
+                          </>
+                        ) : form.watch("dbType") === "mongodb" ? (
+                          <>
+                            <div className="space-y-2 col-span-2">
+                              <label className="text-sm font-medium">Connection URI (optional)</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                placeholder="mongodb://username:password@host:port/database"
+                                {...form.register("connectionString")}
+                              />
+                              <p className="text-xs text-gray-500">
+                                If provided, other connection details are ignored
+                              </p>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Host</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                placeholder="localhost"
+                                {...form.register("server")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Port</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                placeholder="27017"
+                                {...form.register("port")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Database</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                {...form.register("database")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Collection</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                {...form.register("collection")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Username</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                {...form.register("username")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Password</label>
+                              <input
+                                type="password"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                {...form.register("password")}
+                              />
+                            </div>
+                          </>
+                        ) : form.watch("dbType") === "oracle" ? (
+                          <>
+                            <div className="space-y-2 col-span-2">
+                              <label className="text-sm font-medium">Connection String (optional)</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                placeholder="host:port/service"
+                                {...form.register("connectionString")}
+                              />
+                              <p className="text-xs text-gray-500">
+                                If provided, host/port/service fields are ignored
+                              </p>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Host</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                placeholder="localhost"
+                                {...form.register("server")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Port</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                placeholder="1521"
+                                {...form.register("port")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Service Name</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                placeholder="orcl"
+                                {...form.register("service")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Username</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                {...form.register("username")}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Password</label>
+                              <input
+                                type="password"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                {...form.register("password")}
+                              />
+                            </div>
+                          </>
+                        ) : form.watch("dbType") === "sqlite" ? (
+                          <div className="space-y-2 col-span-2">
+                            <label className="text-sm font-medium">Database Filename</label>
+                            <input
+                              type="text"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                              placeholder="/path/to/database.db"
+                              {...form.register("filename")}
+                            />
+                          </div>
+                        ) : null}
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Database</label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                          {...form.register("database")}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Schema</label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="public"
-                          {...form.register("schema")}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Username</label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                          {...form.register("username")}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Password</label>
-                        <input
-                          type="password"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                          {...form.register("password")}
-                        />
-                      </div>
-                    </div>
+                    </>
                   )}
 
                   {form.watch("type") === "sharepoint" && (
