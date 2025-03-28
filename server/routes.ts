@@ -18,6 +18,7 @@ import pgSession from 'connect-pg-simple';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import path from 'path';
+import { DatabaseConnector } from './database/connector';
 import { uploadSingleFile, getFileInfo, uploadToSharePoint, SharePointConfig } from './upload';
 
 // Session types
@@ -707,8 +708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // For database connections, query the database using our DatabaseConnector
           const { dbType = 'postgresql', schema, table, query, collection } = config;
           
-          // Import the DatabaseConnector
-          const { DatabaseConnector } = require('./database/connector');
+          // DatabaseConnector is already imported at the top of the file
           
           try {
             // If using the default database (from environment), set up the appropriate config
@@ -860,8 +860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (type === 'database') {
         const { dbType = 'postgresql' } = config;
         
-        // Import the DatabaseConnector
-        const { DatabaseConnector } = require('./database/connector');
+        // DatabaseConnector is already imported at the top of the file
         
         // Test connection using our database connector
         try {
