@@ -1,14 +1,23 @@
-import { 
-  Home, List, Database, FileText, Users, Shield, Settings, 
-  BarChart, Clipboard, ChevronRight, Loader2
-} from "lucide-react";
-import { Link, useLocation } from "wouter";
-import { cn } from "@/lib/utils";
-import { NAVIGATION_ITEMS } from "@/lib/constants";
 import { useState } from "react";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import type { Application, Form } from "@shared/schema";
+import { 
+  Home, 
+  List, 
+  Database, 
+  FileText,
+  Users,
+  Shield,
+  Settings,
+  BarChart,
+  Clipboard,
+  ChevronRight,
+  Loader2 
+} from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
+import { Application, Form } from "@shared/schema";
+import { NAVIGATION_ITEMS } from "@/lib/constants";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -16,7 +25,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen }: SidebarProps) {
   const [location] = useLocation();
-  const [hoveredAppId, setHoveredAppId] = useState<number | null>(null);
+  const [expandedAppId, setExpandedAppId] = useState<number | null>(null);
   const { isAdmin, user } = useAuth();
   
   // Fetch applications with a short refetch interval to keep sidebar in sync
@@ -28,18 +37,18 @@ export function Sidebar({ isOpen }: SidebarProps) {
     refetchInterval: 5000, // Refetch every 5 seconds
   });
   
-  // Fetch forms for hovered application
+  // Fetch forms for expanded application
   const { data: applicationForms = [], isLoading: isLoadingForms } = useQuery<Form[]>({
-    queryKey: ['/api/applications', hoveredAppId, 'forms'],
+    queryKey: ['/api/applications', expandedAppId, 'forms'],
     queryFn: async () => {
-      if (!hoveredAppId) return [];
-      const response = await fetch(`/api/applications/${hoveredAppId}/forms`);
+      if (!expandedAppId) return [];
+      const response = await fetch(`/api/applications/${expandedAppId}/forms`);
       if (!response.ok) {
         throw new Error('Failed to fetch application forms');
       }
       return response.json();
     },
-    enabled: !!hoveredAppId,
+    enabled: !!expandedAppId,
   });
   
   // Helper function to get icon component by name
@@ -56,6 +65,21 @@ export function Sidebar({ isOpen }: SidebarProps) {
       case "clipboard-check": return <Clipboard className="h-4 w-4" />;
       default: return <List className="h-4 w-4" />;
     }
+  };
+  
+  // Handle form clicks to toggle application expansion
+  const handleAppClick = (appId: number) => {
+    if (expandedAppId === appId) {
+      setExpandedAppId(null);
+    } else {
+      setExpandedAppId(appId);
+    }
+  };
+
+  // Go to application detail page
+  const handleAppLinkClick = (appId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.location.href = `/applications/${appId}`;
   };
   
   return (
@@ -109,24 +133,22 @@ export function Sidebar({ isOpen }: SidebarProps) {
           ) : (
             <div className="space-y-1">
               {/* Show all applications to all authenticated users */}
-              {applications
-                .map((app: Application) => (
-                <div 
-                  key={app.id}
-                  className="relative"
-                  onMouseEnter={() => setHoveredAppId(app.id)}
-                  onMouseLeave={() => setHoveredAppId(null)}
-                >
-                  <Link 
-                    href={`/applications/${app.id}`}
+              {applications.map((app: Application) => (
+                <div key={app.id} className="flex flex-col">
+                  {/* Application header - clickable to expand */}
+                  <div
                     className={cn(
-                      "flex items-center justify-between p-2 space-x-2 rounded",
+                      "flex items-center justify-between p-2 space-x-2 rounded cursor-pointer",
                       (location === `/applications/${app.id}` || location.startsWith(`/applications/${app.id}/`))
                         ? "bg-gray-100 text-primary" 
                         : "hover:bg-gray-100"
                     )}
+                    onClick={() => handleAppClick(app.id)}
                   >
-                    <span className="flex items-center space-x-2">
+                    <div 
+                      className="flex items-center space-x-2 flex-1"
+                      onClick={(e) => handleAppLinkClick(app.id, e)}
+                    >
                       <span className={cn(
                         (location === `/applications/${app.id}` || location.startsWith(`/applications/${app.id}/`))
                           ? "text-primary" 
@@ -135,19 +157,20 @@ export function Sidebar({ isOpen }: SidebarProps) {
                         {getIcon(app.icon || "list")}
                       </span>
                       <span>{app.name}</span>
-                    </span>
-                    <ChevronRight className="h-3 w-3 text-gray-400" />
-                  </Link>
+                    </div>
+                    <ChevronRight 
+                      className={cn(
+                        "h-3 w-3 transition-transform", 
+                        expandedAppId === app.id ? "rotate-90 text-primary" : "text-gray-400"
+                      )} 
+                    />
+                  </div>
                   
-                  {/* Display forms for hovered application */}
-                  {hoveredAppId === app.id && (
-                    <div className="absolute left-full top-0 w-48 bg-white shadow-lg rounded-md p-2 ml-2 z-50">
-                      <div className="text-xs font-semibold text-gray-500 mb-2">
-                        {app.name} Forms
-                      </div>
-                      
+                  {/* Forms list - displayed when application is expanded */}
+                  {expandedAppId === app.id && (
+                    <div className="pl-6 pr-2 py-1 border-l-2 ml-4 border-gray-200">
                       {isLoadingForms ? (
-                        <div className="flex items-center justify-center p-4">
+                        <div className="flex items-center justify-center p-2">
                           <Loader2 className="h-3 w-3 animate-spin text-primary" />
                         </div>
                       ) : applicationForms && applicationForms.length > 0 ? (
@@ -168,7 +191,7 @@ export function Sidebar({ isOpen }: SidebarProps) {
                             ))}
                           
                           {isAdmin && (
-                            <div className="border-t border-gray-200 pt-2 mt-2">
+                            <div className="pt-1 mt-1 border-t border-gray-200">
                               <Link
                                 href={`/applications/${app.id}/new-form`}
                                 className="block p-2 text-sm hover:bg-gray-100 rounded text-primary font-medium"

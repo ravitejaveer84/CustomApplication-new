@@ -8,6 +8,7 @@ import FormBuilder from "@/pages/form-builder";
 import FormView from "@/pages/form-view";
 import FormsList from "@/pages/forms-list";
 import ApplicationsList from "@/pages/applications-list";
+import UserDashboard from "@/pages/user-dashboard";
 import DataSources from "@/pages/data-sources";
 import { Sidebar } from "@/components/sidebar";
 import { AppHeader } from "@/components/app-header";
@@ -19,20 +20,22 @@ import Users from "@/pages/users";
 import Permissions from "@/pages/permissions";
 import ApprovalRequests from "@/pages/approval-requests";
 import FileUploadDemo from "@/pages/file-upload-demo";
-import { AuthProvider, RequireAuth, RequireAdmin } from "@/hooks/use-auth";
+import { AuthProvider, RequireAuth, RequireAdmin, useAuth } from "@/hooks/use-auth";
 
 function Router() {
+  const { user, isAdmin } = useAuth();
+  
   return (
     <Switch>
       {/* Public routes */}
       <Route path="/login" component={Login} />
       <Route path="/unauthorized" component={Unauthorized} />
       
-      {/* Protected routes - general users */}
+      {/* Home route - different for admin and regular users */}
       <Route path="/">
         {(params) => (
           <RequireAuth>
-            <ApplicationsList />
+            {isAdmin ? <ApplicationsList /> : <UserDashboard />}
           </RequireAuth>
         )}
       </Route>
