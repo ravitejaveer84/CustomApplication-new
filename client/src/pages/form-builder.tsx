@@ -68,6 +68,7 @@ export default function FormBuilder() {
       elements: FormElement[],
       applicationId?: number
     }) => {
+      console.log("Saving form with name:", formData.name);
       if (savedFormId) {
         // Update existing form
         const response = await apiRequest<Form>(`/api/forms/${savedFormId}`, {

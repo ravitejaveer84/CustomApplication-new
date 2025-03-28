@@ -20,10 +20,12 @@ import {
 import type { Application, Form } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function ApplicationDetail() {
   const { id } = useParams();
   const applicationId = id ? parseInt(id) : undefined;
+  const { isAdmin } = useAuth();
 
   // Fetch application details
   const { 
@@ -119,12 +121,14 @@ export default function ApplicationDetail() {
           <h1 className="text-3xl font-bold">{application.name}</h1>
           <p className="text-gray-500">{application.description}</p>
         </div>
-        <Link href={`/applications/${applicationId}/new-form`}>
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Form
-          </Button>
-        </Link>
+        {isAdmin && (
+          <Link href={`/applications/${applicationId}/new-form`}>
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New Form
+            </Button>
+          </Link>
+        )}
       </div>
 
       {formsError ? (
@@ -139,15 +143,26 @@ export default function ApplicationDetail() {
             </div>
             <CardTitle className="text-xl mb-3">No Forms Created Yet</CardTitle>
             <CardDescription className="text-base mb-6 max-w-md mx-auto">
-              Start building your first form for <span className="font-semibold">{application.name}</span>. 
-              Forms allow you to collect and process information from your users.
+              {isAdmin ? (
+                <>
+                  Start building your first form for <span className="font-semibold">{application.name}</span>. 
+                  Forms allow you to collect and process information from your users.
+                </>
+              ) : (
+                <>
+                  There are no forms available for this application yet. 
+                  Please check back later or contact an administrator.
+                </>
+              )}
             </CardDescription>
-            <Link href={`/applications/${applicationId}/new-form`}>
-              <Button className="bg-primary hover:bg-primary/90 transition-colors px-6 py-5 h-auto">
-                <PlusCircle className="mr-2 h-5 w-5" />
-                Create Your First Form
-              </Button>
-            </Link>
+            {isAdmin && (
+              <Link href={`/applications/${applicationId}/new-form`}>
+                <Button className="bg-primary hover:bg-primary/90 transition-colors px-6 py-5 h-auto">
+                  <PlusCircle className="mr-2 h-5 w-5" />
+                  Create Your First Form
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -183,17 +198,19 @@ export default function ApplicationDetail() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between gap-2">
-                  <Link href={`/form-builder/${form.id}`} className="flex-1">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="w-full transition-colors group-hover:border-primary group-hover:text-primary"
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  </Link>
-                  <Link href={`/form/${form.id}`} className="flex-1">
+                  {isAdmin && (
+                    <Link href={`/form-builder/${form.id}`} className="flex-1">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="w-full transition-colors group-hover:border-primary group-hover:text-primary"
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </Link>
+                  )}
+                  <Link href={`/form/${form.id}`} className={isAdmin ? "flex-1" : "flex-grow"}>
                     <Button 
                       size="sm" 
                       variant="outline" 
@@ -203,28 +220,32 @@ export default function ApplicationDetail() {
                       View
                     </Button>
                   </Link>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => handleDeleteForm(form.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {isAdmin && (
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => handleDeleteForm(form.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
-          <Link href={`/applications/${applicationId}/new-form`}>
-            <Card className="border-dashed border-2 hover:bg-gray-50 cursor-pointer h-full flex flex-col items-center justify-center transition-colors hover:border-primary">
-              <CardContent className="p-6 text-center">
-                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10">
-                  <PlusCircle className="h-8 w-8 text-gray-400" />
-                </div>
-                <CardTitle className="text-gray-500">Create New Form</CardTitle>
-              </CardContent>
-            </Card>
-          </Link>
+          {isAdmin && (
+            <Link href={`/applications/${applicationId}/new-form`}>
+              <Card className="border-dashed border-2 hover:bg-gray-50 cursor-pointer h-full flex flex-col items-center justify-center transition-colors hover:border-primary">
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10">
+                    <PlusCircle className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <CardTitle className="text-gray-500">Create New Form</CardTitle>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
         </div>
       )}
     </div>

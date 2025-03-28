@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import FormBuilder from "@/pages/form-builder";
+import FormView from "@/pages/form-view";
 import FormsList from "@/pages/forms-list";
 import ApplicationsList from "@/pages/applications-list";
 import DataSources from "@/pages/data-sources";
@@ -48,22 +49,22 @@ function Router() {
       {/* Form routes */}
       <Route path="/form-builder">
         {(params) => (
-          <RequireAuth>
+          <RequireAdmin>
             <FormBuilder />
-          </RequireAuth>
+          </RequireAdmin>
         )}
       </Route>
       <Route path="/form-builder/:id">
         {(params) => (
-          <RequireAuth>
+          <RequireAdmin>
             <FormBuilder />
-          </RequireAuth>
+          </RequireAdmin>
         )}
       </Route>
       <Route path="/form/:id">
         {(params) => (
           <RequireAuth>
-            <FormBuilder />
+            <FormView />
           </RequireAuth>
         )}
       </Route>
