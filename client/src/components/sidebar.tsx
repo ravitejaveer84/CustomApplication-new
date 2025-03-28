@@ -26,6 +26,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen }: SidebarProps) {
   const [location] = useLocation();
   const [expandedAppId, setExpandedAppId] = useState<number | null>(null);
+  const [hoveredAppId, setHoveredAppId] = useState<number | null>(null);
   const { isAdmin, user } = useAuth();
   
   // Fetch applications with a short refetch interval to keep sidebar in sync
@@ -37,18 +38,21 @@ export function Sidebar({ isOpen }: SidebarProps) {
     refetchInterval: 5000, // Refetch every 5 seconds
   });
   
-  // Fetch forms for expanded application
+  // Get the currently active app ID (either hovered or clicked)
+  const activeAppId = hoveredAppId || expandedAppId;
+  
+  // Fetch forms for expanded/hovered application
   const { data: applicationForms = [], isLoading: isLoadingForms } = useQuery<Form[]>({
-    queryKey: ['/api/applications', expandedAppId, 'forms'],
+    queryKey: ['/api/applications', activeAppId, 'forms'],
     queryFn: async () => {
-      if (!expandedAppId) return [];
-      const response = await fetch(`/api/applications/${expandedAppId}/forms`);
+      if (!activeAppId) return [];
+      const response = await fetch(`/api/applications/${activeAppId}/forms`);
       if (!response.ok) {
         throw new Error('Failed to fetch application forms');
       }
       return response.json();
     },
-    enabled: !!expandedAppId,
+    enabled: !!activeAppId,
   });
   
   // Helper function to get icon component by name
@@ -134,7 +138,12 @@ export function Sidebar({ isOpen }: SidebarProps) {
             <div className="space-y-1">
               {/* Show all applications to all authenticated users */}
               {applications.map((app: Application) => (
-                <div key={app.id} className="flex flex-col">
+                <div 
+                  key={app.id} 
+                  className="flex flex-col relative"
+                  onMouseEnter={() => setHoveredAppId(app.id)}
+                  onMouseLeave={() => setHoveredAppId(null)}
+                >
                   {/* Application header - clickable to expand */}
                   <div
                     className={cn(
@@ -166,9 +175,60 @@ export function Sidebar({ isOpen }: SidebarProps) {
                     />
                   </div>
                   
-                  {/* Forms list - displayed when application is expanded */}
+                  {/* Forms list - displayed when application is expanded by click */}
                   {expandedAppId === app.id && (
                     <div className="pl-6 pr-2 py-1 border-l-2 ml-4 border-gray-200">
+                      {isLoadingForms ? (
+                        <div className="flex items-center justify-center p-2">
+                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                        </div>
+                      ) : applicationForms && applicationForms.length > 0 ? (
+                        <div className="space-y-1">
+                          {applicationForms
+                            .filter(form => isAdmin || form.isPublished)
+                            .map((form: Form) => (
+                              <Link
+                                key={form.id}
+                                href={`/form/${form.id}`}
+                                className="block p-2 text-sm hover:bg-gray-100 rounded"
+                              >
+                                {form.name}
+                                {!form.isPublished && isAdmin && 
+                                  <span className="ml-2 text-xs text-gray-400">(Draft)</span>
+                                }
+                              </Link>
+                            ))}
+                          
+                          {isAdmin && (
+                            <div className="pt-1 mt-1 border-t border-gray-200">
+                              <Link
+                                href={`/applications/${app.id}/new-form`}
+                                className="block p-2 text-sm hover:bg-gray-100 rounded text-primary font-medium"
+                              >
+                                + New Form
+                              </Link>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-2 text-sm text-gray-500">
+                          No forms yet
+                          {isAdmin && (
+                            <Link
+                              href={`/applications/${app.id}/new-form`}
+                              className="block mt-2 text-sm text-primary font-medium"
+                            >
+                              + Create Form
+                            </Link>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Hover dropdown for forms - shows when hovering over application */}
+                  {hoveredAppId === app.id && expandedAppId !== app.id && (
+                    <div className="absolute left-full top-0 w-48 bg-white shadow-lg rounded-md p-2 ml-2 z-50">
                       {isLoadingForms ? (
                         <div className="flex items-center justify-center p-2">
                           <Loader2 className="h-3 w-3 animate-spin text-primary" />
