@@ -474,54 +474,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the selected fields from the data source
       const selectedFields = dataSource.selectedFields || [];
       
-      // Depending on the type of data source, get the appropriate fields
-      if (dataSource.type === 'database') {
+      // Check if fields are already stored with the data source
+      if (dataSource.fields && Array.isArray(dataSource.fields) && dataSource.fields.length > 0) {
+        // Use the fields that are already stored with the data source
+        fields = dataSource.fields;
+      }
+      // Otherwise try to fetch them based on the data source type
+      else if (dataSource.type === 'database') {
         // Parse the config as JSON or use empty object if not available
         const config = typeof dataSource.config === 'string' ? 
           JSON.parse(dataSource.config) : 
           (dataSource.config as any || {});
         
-        const { server, port, database, username, password, schema } = config;
+        const { dbType, server, port, database, username, password, schema, host, user, table } = config;
         
-        // Use default database connection if configuration is missing
-        const pool = new pg.Pool({
-          host: server || process.env.PGHOST,
-          port: parseInt(port || process.env.PGPORT || '5432'),
-          database: database || process.env.PGDATABASE,
-          user: username || process.env.PGUSER,
-          password: password || process.env.PGPASSWORD,
-          connectionTimeoutMillis: 5000,
-        });
-        
-        try {
-          const client = await pool.connect();
-          // Get columns from the specified schema (or public by default)
-          const tableSchema = schema || 'public';
+        // If it's a MySQL, SQL Server, MongoDB, etc. data source, let's use our DatabaseConnector
+        if (dbType && dbType !== 'postgresql') {
+          try {
+            // Test the connection to get field info
+            const result = await DatabaseConnector.testConnection(dbType, config);
+            if (result.success && result.fields) {
+              if (typeof result.fields === 'object' && !Array.isArray(result.fields)) {
+                // If fields are grouped by table
+                const tableName = table || Object.keys(result.fields)[0];
+                if (tableName && result.fields[tableName]) {
+                  fields = result.fields[tableName];
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`Error fetching ${dbType} database fields:`, error);
+          }
+        } else {
+          // For PostgreSQL, use the pg client directly
+          // Use default database connection if configuration is missing
+          const pool = new pg.Pool({
+            host: server || host || process.env.PGHOST,
+            port: parseInt(port || process.env.PGPORT || '5432'),
+            database: database || process.env.PGDATABASE,
+            user: username || user || process.env.PGUSER,
+            password: password || process.env.PGPASSWORD,
+            connectionTimeoutMillis: 5000,
+          });
           
-          const query = `
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_schema = $1 
-            AND table_name = $2
-            ORDER BY ordinal_position
-          `;
-          
-          // If there's a selected table in the configuration, use it
-          const tableName = config.table || 'users'; // Default to users table if not specified
-          
-          const result = await client.query(query, [tableSchema, tableName]);
-          client.release();
-          
-          fields = result.rows.map(row => ({
-            name: row.column_name,
-            type: row.data_type,
-            selected: Array.isArray(selectedFields) && selectedFields.includes(row.column_name)
-          }));
-        } catch (error) {
-          console.error('Error fetching database fields:', error);
-          // Return empty fields array on error
-        } finally {
-          await pool.end();
+          try {
+            const client = await pool.connect();
+            // Get columns from the specified schema (or public by default)
+            const tableSchema = schema || 'public';
+            
+            const query = `
+              SELECT column_name, data_type 
+              FROM information_schema.columns 
+              WHERE table_schema = $1 
+              AND table_name = $2
+              ORDER BY ordinal_position
+            `;
+            
+            // If there's a selected table in the configuration, use it
+            const tableName = table || 'users'; // Default to users table if not specified
+            
+            const result = await client.query(query, [tableSchema, tableName]);
+            client.release();
+            
+            fields = result.rows.map(row => ({
+              name: row.column_name,
+              type: row.data_type,
+              selected: Array.isArray(selectedFields) && selectedFields.includes(row.column_name)
+            }));
+          } catch (error) {
+            console.error('Error fetching database fields:', error);
+            // Return empty fields array on error
+          } finally {
+            await pool.end();
+          }
         }
       } else if (dataSource.type === 'sharepoint') {
         // For SharePoint, return mock fields for now
@@ -689,6 +714,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { name, type, config, fields, selectedFields, formId } = req.body;
       
+      // Parse fields and selectedFields if they're strings
+      const parsedFields = typeof fields === 'string' ? JSON.parse(fields) : fields;
+      const parsedSelectedFields = typeof selectedFields === 'string' ? JSON.parse(selectedFields) : selectedFields;
+      
       // Check if the data source exists
       const existingDataSource = await storage.getDataSource(dataSourceId);
       if (!existingDataSource) {
@@ -710,8 +739,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name,
         type,
         config: typeof config === 'string' ? config : JSON.stringify(config),
-        fields: JSON.stringify(fields),
-        selectedFields: JSON.stringify(selectedFields),
+        fields: parsedFields,
+        selectedFields: parsedSelectedFields,
         formId: formId || null
       });
       

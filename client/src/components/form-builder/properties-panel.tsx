@@ -291,8 +291,24 @@ export function PropertiesPanel({
       const data = await response.json();
       
       // Make sure we have fields available
-      const sourceFields = Array.isArray(data.fields) ? data.fields : [];
+      let sourceFields = [];
+      if (Array.isArray(data.fields) && data.fields.length > 0) {
+        console.log('Using fields array from data source response');
+        sourceFields = data.fields;
+      } else {
+        console.log('No fields found in data response, parsing from config');
+        // Try to get fields from the config
+        try {
+          const config = typeof data.config === 'string' ? JSON.parse(data.config) : data.config;
+          if (config && config.fields && Array.isArray(config.fields)) {
+            sourceFields = config.fields;
+          }
+        } catch (error) {
+          console.error('Error parsing config:', error);
+        }
+      }
       
+      console.log('Setting active source fields:', sourceFields);
       setActiveDataSource(data);
       setActiveSourceFields(sourceFields);
       
