@@ -91,6 +91,7 @@ export class DatabaseConnector {
     const { 
       connectionString,
       host,
+      server = 'localhost',
       port = 5432,
       database,
       user,
@@ -105,7 +106,7 @@ export class DatabaseConnector {
         pool = new PgPool({ connectionString });
       } else {
         pool = new PgPool({
-          host,
+          host: host || server,
           port: parseInt(port.toString()),
           database,
           user,
@@ -172,6 +173,7 @@ export class DatabaseConnector {
   private static async testMySqlConnection(config: any): Promise<DatabaseResponse> {
     const { 
       host, 
+      server = 'localhost',
       port = 3306, 
       database, 
       user, 
@@ -182,7 +184,7 @@ export class DatabaseConnector {
     
     try {
       connection = await mysql.createConnection({
-        host,
+        host: host || server,
         port: parseInt(port.toString()),
         database,
         user,
@@ -471,7 +473,7 @@ export class DatabaseConnector {
       
       // Test connection by querying Oracle version
       const versionResult = await connection.execute('SELECT BANNER as version FROM V$VERSION WHERE BANNER LIKE \'Oracle%\'');
-      const version = versionResult.rows && versionResult.rows.length > 0 ? versionResult.rows[0][0] : 'Unknown';
+      const version = versionResult && versionResult.rows && versionResult.rows.length > 0 ? (versionResult.rows[0] as any[])[0] : 'Unknown';
       
       // Query schema information
       const tableResult = await connection.execute(`
@@ -540,7 +542,7 @@ export class DatabaseConnector {
       db = new Database(filename);
       
       // Test connection by getting SQLite version
-      const versionRow = db.prepare('SELECT sqlite_version() as version').get();
+      const versionRow: any = db.prepare('SELECT sqlite_version() as version').get();
       const version = versionRow?.version || 'Unknown';
       
       // Get table list
@@ -589,6 +591,7 @@ export class DatabaseConnector {
     const { 
       connectionString,
       host,
+      server = 'localhost',
       port = 5432,
       database,
       user,
@@ -603,7 +606,7 @@ export class DatabaseConnector {
         pool = new PgPool({ connectionString });
       } else {
         pool = new PgPool({
-          host,
+          host: host || server,
           port: parseInt(port.toString()),
           database,
           user,
@@ -632,6 +635,7 @@ export class DatabaseConnector {
   private static async queryMySql(config: any, query: string): Promise<QueryResult> {
     const { 
       host, 
+      server = 'localhost',
       port = 3306, 
       database, 
       user, 
@@ -642,7 +646,7 @@ export class DatabaseConnector {
     
     try {
       connection = await mysql.createConnection({
-        host,
+        host: host || server,
         port: parseInt(port.toString()),
         database,
         user,
