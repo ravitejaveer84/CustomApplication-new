@@ -16,6 +16,8 @@ type DataSourceFormValues = {
   port?: string;
   database?: string;
   schema?: string;
+  // For relational databases - table selection
+  table?: string;
   username?: string;
   password?: string;
   connectionString?: string;
@@ -48,6 +50,7 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
   const [isConnectionTested, setIsConnectionTested] = useState(false);
   const [fields, setFields] = useState<DataField[]>([]);
   const [previewData, setPreviewData] = useState<any[]>([]);
+  const [availableTables, setAvailableTables] = useState<string[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -251,10 +254,11 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
       let config: any = {};
       
       if (data.type === 'database') {
-        // Include database type in the config
+        // Include database type and table in the config
         config = {
           dbType: data.dbType || 'postgresql',
-          useDefaultDatabase: data.useDefaultDatabase
+          useDefaultDatabase: data.useDefaultDatabase,
+          table: data.table || (availableTables.length > 0 ? availableTables[0] : undefined)
         };
         
         // Different validation logic based on database type
@@ -361,14 +365,19 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
         setIsConnectionTested(true);
         setConnectionTestResponse(result);
         
-        // Extract fields from the response based on data source type
+        // Extract tables and fields from the response
         let extractedFields: DataField[] = [];
         if (data.type === 'database') {
-          // For database, we need to handle the table selection first
-          // For now, just use the first table if available
+          // For database, store tables and select the first one as default
           const tables = result.tables || [];
+          setAvailableTables(tables);
+          
           if (tables.length > 0) {
+            // Set the first table as default
             const firstTable = tables[0];
+            form.setValue('table', firstTable);
+            
+            // Get fields for this table
             const tableFields = result.fields[firstTable] || [];
             extractedFields = tableFields.map((field: any) => ({
               name: field.name,
@@ -437,7 +446,8 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
         // Include database type in the config
         config = {
           dbType: data.dbType || 'postgresql',
-          useDefaultDatabase: data.useDefaultDatabase
+          useDefaultDatabase: data.useDefaultDatabase,
+          table: data.table || (availableTables.length > 0 ? availableTables[0] : undefined)
         };
         
         // Different validation logic based on database type
@@ -716,6 +726,39 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
                                 {...form.register("schema")}
                               />
                             </div>
+                            
+                            {/* Table selector - only shown after connection test */}
+                            {isConnectionTested && availableTables.length > 0 && (
+                              <div className="space-y-2 col-span-2">
+                                <label className="text-sm font-medium">Table</label>
+                                <select
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                  {...form.register("table")}
+                                  onChange={(e) => {
+                                    const selectedTable = e.target.value;
+                                    // Update fields based on the selected table
+                                    if (connectionTestResponse?.fields && connectionTestResponse.fields[selectedTable]) {
+                                      const tableFields = connectionTestResponse.fields[selectedTable].map((field: any) => ({
+                                        name: field.name,
+                                        type: field.type,
+                                        selected: field.selected || false
+                                      }));
+                                      setFields(tableFields);
+                                      generateSamplePreviewData(tableFields);
+                                    }
+                                  }}
+                                >
+                                  {availableTables.map((table) => (
+                                    <option key={table} value={table}>
+                                      {table}
+                                    </option>
+                                  ))}
+                                </select>
+                                <p className="text-xs text-gray-500">
+                                  Select a table from the database to use for this data source
+                                </p>
+                              </div>
+                            )}
                             <div className="space-y-2">
                               <label className="text-sm font-medium">Username</label>
                               <input
