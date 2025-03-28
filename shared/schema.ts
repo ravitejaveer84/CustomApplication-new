@@ -174,6 +174,7 @@ export const dataSources = pgTable("data_sources", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   type: text("type").notNull(), // "database", "sharepoint", or "excel"
+  formId: integer("form_id"), // Link to the form that owns this data source
   config: jsonb("config").notNull(),
   fields: jsonb("fields").default('[]'), // Store the field mappings
   selectedFields: jsonb("selected_fields").default('[]'), // Store the selected field names

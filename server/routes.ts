@@ -18,7 +18,7 @@ import pgSession from 'connect-pg-simple';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import path from 'path';
-import { DatabaseConnector } from './database/connector';
+import { DatabaseConnector, DatabaseResponse } from './database/connector';
 import { uploadSingleFile, getFileInfo, uploadToSharePoint, SharePointConfig } from './upload';
 
 // Session types
@@ -588,6 +588,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/datasources', async (req, res) => {
     try {
+      // Check for duplicate data source name for the same form
+      const { name, formId } = req.body;
+      
+      // Get existing data sources
+      const existingDataSources = await storage.getDataSources();
+      
+      // If formId is provided, check for duplicate names in the same form
+      if (formId) {
+        const formDataSources = existingDataSources.filter(ds => ds.formId === formId);
+        const duplicateName = formDataSources.find(ds => ds.name.toLowerCase() === name.toLowerCase());
+        
+        if (duplicateName) {
+          return res.status(400).json({ 
+            message: `A data source with the name "${name}" already exists for this form. Please use a different name.` 
+          });
+        }
+      } else {
+        // If no formId, check for duplicate names globally
+        const duplicateName = existingDataSources.find(ds => ds.name.toLowerCase() === name.toLowerCase());
+        
+        if (duplicateName) {
+          return res.status(400).json({ 
+            message: `A data source with the name "${name}" already exists. Please use a different name.` 
+          });
+        }
+      }
+      
       // Process the request body to properly format config as a string
       const requestData = { ...req.body };
       
@@ -742,7 +769,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             sourceData = result.rows;
-          } catch (dbError) {
+          } catch (error) {
+            const dbError = error as Error;
             console.error('Error querying database:', dbError);
             return res.status(500).json({ message: `Error querying database data source: ${dbError.message || 'Unknown error'}` });
           }
@@ -890,15 +918,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (result.success) {
             // Include the table in the response if it was provided
+            // Create a response object that extends DatabaseResponse with our additional properties
+            const responseWithSelectedTable: DatabaseResponse & { selectedTable?: string } = { ...result };
+            
             if (config.table) {
               console.log(`Using specified table: ${config.table}`);
-              result.selectedTable = config.table;
+              responseWithSelectedTable.selectedTable = config.table;
             } else if (result.tables && result.tables.length > 0) {
               // Default to first table if none specified
               console.log(`Defaulting to first available table: ${result.tables[0]}`);
-              result.selectedTable = result.tables[0];
+              responseWithSelectedTable.selectedTable = result.tables[0];
             }
-            res.json(result);
+            res.json(responseWithSelectedTable);
           } else {
             res.status(400).json(result);
           }

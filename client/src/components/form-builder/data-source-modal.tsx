@@ -43,9 +43,11 @@ type DataField = {
 interface DataSourceModalProps {
   isOpen: boolean;
   onClose: () => void;
+  formId?: number; // The ID of the form this data source is associated with
+  existingDataSource?: any; // For editing existing data sources
 }
 
-export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
+export function DataSourceModal({ isOpen, onClose, formId, existingDataSource }: DataSourceModalProps) {
   const [activeTab, setActiveTab] = useState("connection");
   const [isConnectionTested, setIsConnectionTested] = useState(false);
   const [fields, setFields] = useState<DataField[]>([]);
@@ -443,11 +445,21 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
       let config: any = {};
       
       if (data.type === 'database') {
+        // Make sure a table is selected for database connections
+        if (!data.table && availableTables.length > 0) {
+          toast({
+            title: "Error",
+            description: "Please select a table for this data source",
+            variant: "destructive"
+          });
+          return;
+        }
+        
         // Include database type in the config
         config = {
           dbType: data.dbType || 'postgresql',
           useDefaultDatabase: data.useDefaultDatabase,
-          table: data.table || (availableTables.length > 0 ? availableTables[0] : undefined)
+          table: data.table
         };
         
         // Different validation logic based on database type
@@ -553,7 +565,8 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
           type: data.type,
           config: config, // Send config as plain object, server will stringify if needed
           fields: fields,                 // Store all fields
-          selectedFields: selectedFieldNames // Store just the names of selected fields
+          selectedFields: selectedFieldNames, // Store just the names of selected fields
+          formId: formId || undefined // Associate with form if formId is provided
         })
       });
 
@@ -579,7 +592,7 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Configure Data Source</DialogTitle>
         </DialogHeader>
