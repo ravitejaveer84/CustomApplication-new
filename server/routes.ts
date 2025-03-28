@@ -679,6 +679,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // PUT /api/datasources/:id - Update an existing data source
+  app.put('/api/datasources/:id', async (req, res) => {
+    try {
+      const dataSourceId = parseInt(req.params.id);
+      if (isNaN(dataSourceId)) {
+        return res.status(400).json({ message: 'Invalid data source ID' });
+      }
+      
+      const { name, type, config, fields, selectedFields, formId } = req.body;
+      
+      // Check if the data source exists
+      const existingDataSource = await storage.getDataSource(dataSourceId);
+      if (!existingDataSource) {
+        return res.status(404).json({ message: 'Data source not found' });
+      }
+      
+      // Check if the name is unique for this form (except for the current data source)
+      const dataSources = await storage.getDataSources();
+      const formDataSources = dataSources.filter(ds => 
+        ds.formId === formId && ds.id !== dataSourceId && ds.name === name
+      );
+      
+      if (formDataSources.length > 0) {
+        return res.status(400).json({ message: `A data source with the name "${name}" already exists for this form` });
+      }
+      
+      // Update the data source
+      const updatedDataSource = await storage.updateDataSource(dataSourceId, {
+        name,
+        type,
+        config: typeof config === 'string' ? config : JSON.stringify(config),
+        fields: JSON.stringify(fields),
+        selectedFields: JSON.stringify(selectedFields),
+        formId: formId || null
+      });
+      
+      res.json(updatedDataSource);
+    } catch (error) {
+      console.error('Error updating data source:', error);
+      res.status(500).json({ message: 'Error updating data source' });
+    }
+  });
+
   app.delete('/api/datasources/:id', async (req, res) => {
     try {
       const dataSourceId = parseInt(req.params.id);

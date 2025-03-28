@@ -84,9 +84,41 @@ export function DataSourceModal({ isOpen, onClose, formId, existingDataSource }:
   // State to store connection test response
   const [connectionTestResponse, setConnectionTestResponse] = useState<any>(null);
   
+  // Effect to load fields and preview data when editing an existing data source
+  useEffect(() => {
+    if (view === "edit" && selectedDataSource) {
+      // Get the saved fields from the data source
+      const savedFields = selectedDataSource.fields || [];
+      if (savedFields.length > 0) {
+        setFields(savedFields);
+        generateSamplePreviewData(savedFields);
+      } else {
+        // Fetch fields from the API if not stored with the data source
+        fetchDataSourceFields(selectedDataSource.id);
+      }
+    }
+  }, [view, selectedDataSource]);
+
+  // Function to fetch fields for a data source by ID
+  const fetchDataSourceFields = async (dataSourceId: number) => {
+    try {
+      const response = await fetch(`/api/datasources/${dataSourceId}`);
+      if (response.ok) {
+        const dataSource = await response.json();
+        
+        if (dataSource.fields && dataSource.fields.length > 0) {
+          setFields(dataSource.fields);
+          generateSamplePreviewData(dataSource.fields);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching data source fields:', error);
+    }
+  };
+
   // Effect to generate fields when connection is tested successfully
   useEffect(() => {
-    if (isConnectionTested && connectionTestResponse) {
+    if (isConnectionTested && connectionTestResponse && view !== "edit") {
       // Process fields from the connection test response
       const type = form.getValues('type');
       
@@ -457,6 +489,9 @@ export function DataSourceModal({ isOpen, onClose, formId, existingDataSource }:
         });
         return;
       }
+      
+      // Check if we're editing an existing data source
+      const isEditing = view === "edit" && selectedDataSource;
 
       // Build the configuration object based on data source type
       let config: any = {};
@@ -574,8 +609,12 @@ export function DataSourceModal({ isOpen, onClose, formId, existingDataSource }:
         .filter(field => field.selected)
         .map(field => field.name);
 
-      const response = await fetch('/api/datasources', {
-        method: 'POST',
+      // Use PUT for editing existing data source, POST for creating a new one
+      const url = isEditing ? `/api/datasources/${selectedDataSource.id}` : '/api/datasources';
+      const method = isEditing ? 'PUT' : 'POST';
+        
+      const response = await fetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: data.name,
