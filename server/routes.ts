@@ -857,8 +857,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { type, config } = req.body;
       
+      console.log('Testing connection for type:', type);
+      console.log('Connection config:', JSON.stringify(config, null, 2));
+      
       if (type === 'database') {
         const { dbType = 'postgresql' } = config;
+        
+        console.log('Database type:', dbType);
         
         // DatabaseConnector is already imported at the top of the file
         
@@ -866,14 +871,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           // If using the default database (from environment), set up the appropriate config
           if (config.useDefaultDatabase) {
+            console.log('Using default database connection from environment');
             // Use the environment database connection
             if (dbType.toLowerCase() === 'postgresql') {
               config.connectionString = process.env.DATABASE_URL;
+              console.log('Using connectionString from DATABASE_URL');
             }
+          } else {
+            console.log('Using custom database connection settings');
           }
           
           // Test the connection to the database
+          console.log('Calling DatabaseConnector.testConnection with type:', dbType);
           const result = await DatabaseConnector.testConnection(dbType, config);
+          console.log('Connection test result:', result);
           
           if (result.success) {
             res.json(result);
