@@ -67,7 +67,9 @@ export function Toolbar({
         
         await apiRequest<any>(`/api/forms/${formId}`, {
           method: 'PATCH',
-          data: {}
+          data: {
+            name: formName // Include the form name in the save request
+          }
         });
         
         toast({

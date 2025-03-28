@@ -73,7 +73,10 @@ export default function FormBuilder() {
         // Update existing form
         const response = await apiRequest<Form>(`/api/forms/${savedFormId}`, {
           method: 'PATCH',
-          data: formData
+          data: {
+            ...formData,
+            name: formData.name // Explicitly include the name in the request
+          }
         });
         return response;
       } else {
