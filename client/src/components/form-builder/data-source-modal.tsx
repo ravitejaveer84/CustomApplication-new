@@ -728,7 +728,7 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
                             </div>
                             
                             {/* Table selector - only shown after connection test */}
-                            {isConnectionTested && availableTables.length > 0 && (
+                            {isConnectionTested && (
                               <div className="space-y-2 col-span-2">
                                 <label className="text-sm font-medium">Table</label>
                                 <select
@@ -748,11 +748,15 @@ export function DataSourceModal({ isOpen, onClose }: DataSourceModalProps) {
                                     }
                                   }}
                                 >
-                                  {availableTables.map((table) => (
-                                    <option key={table} value={table}>
-                                      {table}
-                                    </option>
-                                  ))}
+                                  {availableTables.length > 0 ? (
+                                    availableTables.map((table) => (
+                                      <option key={table} value={table}>
+                                        {table}
+                                      </option>
+                                    ))
+                                  ) : (
+                                    <option value="">No tables found</option>
+                                  )}
                                 </select>
                                 <p className="text-xs text-gray-500">
                                   Select a table from the database to use for this data source

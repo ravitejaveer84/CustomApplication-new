@@ -728,7 +728,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 sqlQuery = '{}';
               } else {
                 // For SQL databases, construct a basic SELECT
-                sqlQuery = `SELECT * FROM ${schema || 'public'}.${table || 'users'} LIMIT 1000`;
+                const tableName = table || 'users';
+                console.log(`Using table: ${tableName} for data source query`);
+                sqlQuery = `SELECT * FROM ${schema || 'public'}.${tableName} LIMIT 1000`;
               }
             }
             
@@ -887,6 +889,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Connection test result:', result);
           
           if (result.success) {
+            // Include the table in the response if it was provided
+            if (config.table) {
+              console.log(`Using specified table: ${config.table}`);
+              result.selectedTable = config.table;
+            } else if (result.tables && result.tables.length > 0) {
+              // Default to first table if none specified
+              console.log(`Defaulting to first available table: ${result.tables[0]}`);
+              result.selectedTable = result.tables[0];
+            }
             res.json(result);
           } else {
             res.status(400).json(result);
