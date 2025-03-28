@@ -645,6 +645,7 @@ export const NAVIGATION_ITEMS = [
     items: [
       { icon: "users", label: "Users", path: "/users", adminOnly: true },
       { icon: "shield", label: "Permissions", path: "/permissions", adminOnly: true },
+      { icon: "database", label: "Data Sources", path: "/data-sources", adminOnly: true },
       { icon: "settings", label: "Settings", path: "/settings", adminOnly: true }
     ]
   }

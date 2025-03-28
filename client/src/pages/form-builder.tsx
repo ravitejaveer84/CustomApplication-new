@@ -255,6 +255,7 @@ export default function FormBuilder() {
               <PropertiesPanel 
                 selectedElement={selectedElement} 
                 onElementUpdate={handleElementUpdate}
+                formId={savedFormId}
               />
             </div>
           </div>
@@ -265,6 +266,7 @@ export default function FormBuilder() {
       <DataSourceModal 
         isOpen={dataSourceModalOpen}
         onClose={() => setDataSourceModalOpen(false)}
+        formId={savedFormId}
       />
       
       {/* Preview Modal */}

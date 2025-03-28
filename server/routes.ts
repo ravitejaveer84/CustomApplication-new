@@ -438,8 +438,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Data Sources API endpoints
   app.get('/api/datasources', async (req, res) => {
     try {
-      const dataSources = await storage.getDataSources();
-      res.json(dataSources);
+      const formId = req.query.formId ? parseInt(req.query.formId as string) : undefined;
+      
+      if (formId !== undefined) {
+        // Get data sources for a specific form
+        const allDataSources = await storage.getDataSources();
+        const formDataSources = allDataSources.filter(ds => ds.formId === formId);
+        return res.json(formDataSources);
+      } else {
+        // Get all data sources
+        const dataSources = await storage.getDataSources();
+        res.json(dataSources);
+      }
     } catch (error) {
       console.error('Error fetching data sources:', error);
       res.status(500).json({ message: 'Error fetching data sources' });

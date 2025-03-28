@@ -56,6 +56,7 @@ interface DataSourceField {
 interface PropertiesPanelProps {
   selectedElement: FormElement | null;
   onElementUpdate: (updatedElement: FormElement) => void;
+  formId?: number; // Add formId to associate data sources with forms
 }
 
 interface DataSource {
@@ -65,11 +66,13 @@ interface DataSource {
   config: string;
   fields: Array<{ name: string; type: string; selected: boolean }>;
   selectedFields: string[];
+  formId?: number;
 }
 
 export function PropertiesPanel({
   selectedElement,
   onElementUpdate,
+  formId,
 }: PropertiesPanelProps) {
   if (!selectedElement) {
     return (
@@ -97,9 +100,13 @@ export function PropertiesPanel({
   // Renamed to avoid conflict with other state variables
   const [dataSourceState, setDataSourceState] = useState<any>(null);
   
-  // Fetch all available data sources when component mounts
+  // Fetch data sources specific to this form when component mounts
   useEffect(() => {
-    fetch('/api/datasources')
+    // If formId is available, fetch form-specific data sources
+    // Otherwise, fetch all data sources (for backward compatibility)
+    const url = formId ? `/api/datasources?formId=${formId}` : '/api/datasources';
+    
+    fetch(url)
       .then(res => res.json())
       .then(data => {
         setDataSources(data);
@@ -107,7 +114,7 @@ export function PropertiesPanel({
       .catch(error => {
         console.error('Error fetching data sources:', error);
       });
-  }, []);
+  }, [formId]);
 
   const form = useForm<FormElement>({
     defaultValues: selectedElement || {
@@ -131,9 +138,17 @@ export function PropertiesPanel({
     },
   });
   
-  // Fetch all data sources - at component top level
+  // Fetch form-specific data sources - at component top level
   const { data: availableDataSources = [] } = useQuery<DataSource[]>({
-    queryKey: ["/api/datasources"],
+    queryKey: ["/api/datasources", formId],
+    queryFn: async () => {
+      const url = formId ? `/api/datasources?formId=${formId}` : '/api/datasources';
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch data sources');
+      }
+      return response.json();
+    },
     enabled: activeTab === "data",
   });
 
